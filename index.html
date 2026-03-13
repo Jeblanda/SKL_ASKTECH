@@ -22,6 +22,9 @@
     <button class="nav-btn" data-page="employees">Employees</button>
     <button class="nav-btn" data-page="parts">Parts</button>
     <button class="nav-btn" data-page="servicehistory">Service History</button>
+    <button class="nav-btn" data-page="joborder">Job Order</button>
+    <button class="nav-btn" data-page="saledetails">Sale Details</button>
+    <button class="nav-btn" data-page="pricehistory">Price History</button>
   </nav>
 </header>
 
@@ -59,6 +62,7 @@
             <th>Name</th>
             <th>Contact</th>
             <th>Address</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="customers-body">
@@ -98,6 +102,7 @@
             <th>Unit Price</th>
             <th>Qty On Hand</th>
             <th>Reorder Level</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="products-body">
@@ -135,6 +140,7 @@
             <th>Total Amount</th>
             <th>Customer</th>
             <th>Employee</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="sales-body">
@@ -174,6 +180,7 @@
             <th>Customer</th>
             <th>Product</th>
             <th>Employee</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="services-body">
@@ -213,6 +220,7 @@
             <th>Contact No</th>
             <th>Email</th>
             <th>Address</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="employees-body">
@@ -246,6 +254,7 @@
             <th>Parts ID</th>
             <th>Parts Name</th>
             <th>Description</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="parts-body">
@@ -290,9 +299,127 @@
             <th>Status</th>
             <th>Update Date</th>
             <th>Notes</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="servicehistory-body">
+          <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- =====================================================
+       PAGE: JOB ORDER
+       ===================================================== -->
+  <section class="page" id="page-joborder">
+    <h2 class="page-title">Job Order</h2>
+
+    <div class="inline-form">
+      <select id="jo-service"><option value="">-- Service --</option></select>
+      <select id="jo-part"><option value="">-- Part --</option></select>
+      <input type="number" id="jo-price"    placeholder="Unit Price" min="0" step="0.01" />
+      <input type="number" id="jo-quantity" placeholder="Quantity"   min="1" />
+      <button class="add-btn" id="btn-add-joborder">Add Job Order</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-joborder" placeholder="Search job orders..."
+             oninput="filterTable('joborder-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Service ID</th>
+            <th>Service Type</th>
+            <th>Parts ID</th>
+            <th>Parts Name</th>
+            <th>Unit Price</th>
+            <th>Quantity</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="joborder-body">
+          <tr><td colspan="7" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       PAGE: SALE DETAILS
+       ===================================================== -->
+  <section class="page" id="page-saledetails">
+    <h2 class="page-title">Sale Details</h2>
+
+    <div class="inline-form">
+      <select id="sd-sale"><option value="">-- Sale --</option></select>
+      <select id="sd-product"><option value="">-- Product --</option></select>
+      <input type="number" id="sd-quantity"  placeholder="Quantity"   min="1" />
+      <input type="number" id="sd-unitprice" placeholder="Unit Price" min="0" step="0.01" />
+      <button class="add-btn" id="btn-add-saledetail">Add Sale Detail</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-saledetails" placeholder="Search sale details..."
+             oninput="filterTable('saledetails-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Detail ID</th>
+            <th>Sale ID</th>
+            <th>Sale Date</th>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="saledetails-body">
+          <tr><td colspan="7" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       PAGE: PRODUCT PRICE HISTORY
+       ===================================================== -->
+  <section class="page" id="page-pricehistory">
+    <h2 class="page-title">Product Price History</h2>
+
+    <div class="inline-form">
+      <select id="ph-product"><option value="">-- Product --</option></select>
+      <input type="number" id="ph-oldprice" placeholder="Old Unit Price" min="0" step="0.01" />
+      <input type="number" id="ph-newprice" placeholder="New Unit Price" min="0" step="0.01" />
+      <input type="date"   id="ph-date" />
+      <button class="add-btn" id="btn-add-pricehistory">Add Price Change</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-pricehistory" placeholder="Search price history..."
+             oninput="filterTable('pricehistory-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>History ID</th>
+            <th>Product</th>
+            <th>Old Price</th>
+            <th>New Price</th>
+            <th>Change Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="pricehistory-body">
           <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
         </tbody>
       </table>

@@ -234,6 +234,27 @@ body {
 }
 
 /* ============================================================
+   REMOVE BUTTON
+   ============================================================ */
+.remove-btn {
+  padding: 3px 10px;
+  background-color: #fff0f0;
+  color: #c00;
+  border: 1px solid #f5b8b8;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.remove-btn:hover {
+  background-color: #c00;
+  color: #fff;
+  border-color: #c00;
+}
+
+/* ============================================================
    TOAST NOTIFICATION
    ============================================================ */
 .toast {

@@ -1,6 +1,7 @@
 /* ============================================================
    AskTech Management System — script.js
    All column names lowercased to match PostgreSQL schema cache
+   Includes Remove button on every table row
    ============================================================ */
 
 const SUPABASE_URL      = 'https://qqmujlxlmcubemdblisx.supabase.co';
@@ -18,6 +19,22 @@ function showToast(msg, type = '') {
   toast.className = `toast ${type} show`;
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { toast.className = 'toast'; }, 3500);
+}
+
+// ============================================================
+// CONFIRM + DELETE HELPER
+// Reusable delete function for any table
+// ============================================================
+async function deleteRecord(table, column, id, label, refreshFn) {
+  if (!confirm(`Remove this ${label}? This cannot be undone.`)) return;
+  try {
+    const { error } = await db.from(table).delete().eq(column, id);
+    if (error) throw error;
+    showToast(`${label} removed successfully.`, 'success');
+    refreshFn();
+  } catch (err) {
+    showToast('Error removing record: ' + err.message, 'error');
+  }
 }
 
 // ============================================================
@@ -39,12 +56,16 @@ navBtns.forEach(btn => {
 
 function loadPage(pageId) {
   switch (pageId) {
-    case 'customers': fetchCustomers(); break;
-    case 'products':  fetchProducts();  break;
-    case 'sales':     fetchSales();     break;
-    case 'services':  fetchServices();  break;
-    case 'employees': fetchEmployees(); break;
+    case 'customers':      fetchCustomers();      break;
+    case 'products':       fetchProducts();       break;
+    case 'sales':          fetchSales();          break;
+    case 'services':       fetchServices();       break;
+    case 'employees':      fetchEmployees();      break;
+    case 'parts':          fetchParts();          break;
     case 'servicehistory': fetchServiceHistory(); break;
+    case 'joborder':       fetchJobOrders();      break;
+    case 'saledetails':    fetchSaleDetails();    break;
+    case 'pricehistory':   fetchPriceHistory();   break;
   }
 }
 
@@ -63,15 +84,10 @@ function filterTable(tbodyId, term) {
 
 // ============================================================
 // CUSTOMERS
-// PostgreSQL lowercases column names:
-//   CustomerID    → customerid
-//   CustomerName  → customername
-//   ContactNumber → contactnumber
-//   Address       → address
 // ============================================================
 async function fetchCustomers() {
   const tbody = document.getElementById('customers-body');
-  tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('customers')
@@ -79,7 +95,7 @@ async function fetchCustomers() {
       .order('customerid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -88,9 +104,10 @@ async function fetchCustomers() {
         <td>${r.customername}</td>
         <td>${r.contactnumber || ''}</td>
         <td>${r.address || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('customers','customerid',${r.customerid},'Customer',fetchCustomers)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading customers: ' + err.message, 'error');
   }
 }
@@ -117,16 +134,10 @@ document.getElementById('btn-add-customer').addEventListener('click', async () =
 
 // ============================================================
 // PRODUCTS
-//   ProductID      → productid
-//   ProductName    → productname
-//   ProductType    → producttype
-//   UnitPrice      → unitprice
-//   QuantityOnHand → quantityonhand
-//   ReorderLevel   → reorderlevel
 // ============================================================
 async function fetchProducts() {
   const tbody = document.getElementById('products-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('products')
@@ -134,7 +145,7 @@ async function fetchProducts() {
       .order('productid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -145,9 +156,10 @@ async function fetchProducts() {
         <td>${Number(r.unitprice).toFixed(2)}</td>
         <td>${r.quantityonhand}</td>
         <td>${r.reorderlevel}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('products','productid',${r.productid},'Product',fetchProducts)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading products: ' + err.message, 'error');
   }
 }
@@ -177,11 +189,6 @@ document.getElementById('btn-add-product').addEventListener('click', async () =>
 
 // ============================================================
 // SALES
-//   SaleID      → saleid
-//   SaleDate    → saledate
-//   TotalAmount → totalamount
-//   CustomerID  → customerid
-//   EmployeeID  → employeeid
 // ============================================================
 async function populateSalesDropdowns() {
   const [{ data: custs }, { data: emps }] = await Promise.all([
@@ -199,7 +206,7 @@ async function populateSalesDropdowns() {
 async function fetchSales() {
   await populateSalesDropdowns();
   const tbody = document.getElementById('sales-body');
-  tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('sales')
@@ -207,7 +214,7 @@ async function fetchSales() {
       .order('saleid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -217,9 +224,10 @@ async function fetchSales() {
         <td>${Number(r.totalamount).toFixed(2)}</td>
         <td>${r.customers?.customername || ''}</td>
         <td>${r.employees?.employeename || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('sales','saleid',${r.saleid},'Sale',fetchSales)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading sales: ' + err.message, 'error');
   }
 }
@@ -250,12 +258,6 @@ document.getElementById('btn-add-sale').addEventListener('click', async () => {
 
 // ============================================================
 // SERVICES
-//   ServiceID   → serviceid
-//   ServiceType → servicetype
-//   ServiceDate → servicedate
-//   CustomerID  → customerid
-//   ProductID   → productid
-//   EmployeeID  → employeeid
 // ============================================================
 async function populateServiceDropdowns() {
   const [{ data: custs }, { data: prods }, { data: emps }] = await Promise.all([
@@ -277,7 +279,7 @@ async function populateServiceDropdowns() {
 async function fetchServices() {
   await populateServiceDropdowns();
   const tbody = document.getElementById('services-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('services')
@@ -285,7 +287,7 @@ async function fetchServices() {
       .order('serviceid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -296,9 +298,10 @@ async function fetchServices() {
         <td>${r.customers?.customername || ''}</td>
         <td>${r.products?.productname   || ''}</td>
         <td>${r.employees?.employeename || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('services','serviceid',${r.serviceid},'Service',fetchServices)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading services: ' + err.message, 'error');
   }
 }
@@ -332,16 +335,10 @@ document.getElementById('btn-add-service').addEventListener('click', async () =>
 
 // ============================================================
 // EMPLOYEES
-//   EmployeeID   → employeeid
-//   EmployeeName → employeename
-//   Role         → role
-//   Address      → address
-//   ContactNo    → contactno
-//   EmailADD     → emailadd
 // ============================================================
 async function fetchEmployees() {
   const tbody = document.getElementById('employees-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('employees')
@@ -349,7 +346,7 @@ async function fetchEmployees() {
       .order('employeeid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -360,9 +357,10 @@ async function fetchEmployees() {
         <td>${r.contactno || ''}</td>
         <td>${r.emailadd || ''}</td>
         <td>${r.address || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('employees','employeeid',${r.employeeid},'Employee',fetchEmployees)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading employees: ' + err.message, 'error');
   }
 }
@@ -391,13 +389,10 @@ document.getElementById('btn-add-employee').addEventListener('click', async () =
 
 // ============================================================
 // PARTS
-//   PartsID     → partsid
-//   PartsName   → partsname
-//   Description → description
 // ============================================================
 async function fetchParts() {
   const tbody = document.getElementById('parts-body');
-  tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('parts')
@@ -405,7 +400,7 @@ async function fetchParts() {
       .order('partsid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -413,9 +408,10 @@ async function fetchParts() {
         <td>${r.partsid}</td>
         <td>${r.partsname}</td>
         <td>${r.description || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('parts','partsid',${r.partsid},'Part',fetchParts)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading parts: ' + err.message, 'error');
   }
 }
@@ -439,11 +435,6 @@ document.getElementById('btn-add-part').addEventListener('click', async () => {
 
 // ============================================================
 // SERVICE HISTORY
-//   servicehistoryid → servicehistoryid
-//   serviceid        → serviceid
-//   status           → status
-//   updatedate       → updatedate
-//   notes            → notes
 // ============================================================
 async function populateServiceHistoryDropdown() {
   const { data: svcs } = await db
@@ -458,7 +449,7 @@ async function populateServiceHistoryDropdown() {
 async function fetchServiceHistory() {
   await populateServiceHistoryDropdown();
   const tbody = document.getElementById('servicehistory-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
   try {
     const { data, error } = await db
       .from('service_history')
@@ -466,7 +457,7 @@ async function fetchServiceHistory() {
       .order('servicehistoryid');
     if (error) throw error;
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `
@@ -477,9 +468,10 @@ async function fetchServiceHistory() {
         <td>${r.status}</td>
         <td>${r.updatedate}</td>
         <td>${r.notes || ''}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('service_history','servicehistoryid',${r.servicehistoryid},'History Record',fetchServiceHistory)">Remove</button></td>
       </tr>`).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading service history: ' + err.message, 'error');
   }
 }
@@ -513,3 +505,199 @@ document.getElementById('btn-add-servicehistory').addEventListener('click', asyn
 // INIT
 // ============================================================
 fetchCustomers();
+
+// ============================================================
+// JOB ORDER
+// ============================================================
+async function populateJobOrderDropdowns() {
+  const [{ data: svcs }, { data: pts }] = await Promise.all([
+    db.from('services').select('serviceid, servicetype').order('serviceid'),
+    db.from('parts').select('partsid, partsname').order('partsname')
+  ]);
+  document.getElementById('jo-service').innerHTML =
+    '<option value="">-- Service --</option>' +
+    (svcs||[]).map(s=>`<option value="${s.serviceid}">[${s.serviceid}] ${s.servicetype}</option>`).join('');
+  document.getElementById('jo-part').innerHTML =
+    '<option value="">-- Part --</option>' +
+    (pts||[]).map(p=>`<option value="${p.partsid}">${p.partsname}</option>`).join('');
+}
+
+async function fetchJobOrders() {
+  await populateJobOrderDropdowns();
+  const tbody = document.getElementById('joborder-body');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
+  try {
+    const { data, error } = await db.from('joborder')
+      .select('serviceid, partsid, unitprice, quantity, services(servicetype), parts(partsname)')
+      .order('serviceid');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.serviceid}</td>
+        <td>${r.services?.servicetype||''}</td>
+        <td>${r.partsid}</td>
+        <td>${r.parts?.partsname||''}</td>
+        <td>${Number(r.unitprice).toFixed(2)}</td>
+        <td>${r.quantity}</td>
+        <td><button class="remove-btn" onclick="deleteJobOrder(${r.serviceid},${r.partsid})">Remove</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function deleteJobOrder(serviceId, partsId) {
+  if (!confirm('Remove this Job Order? This cannot be undone.')) return;
+  try {
+    const { error } = await db.from('joborder').delete().eq('serviceid', serviceId).eq('partsid', partsId);
+    if (error) throw error;
+    showToast('Job Order removed.', 'success');
+    fetchJobOrders();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+}
+
+document.getElementById('btn-add-joborder').addEventListener('click', async () => {
+  const serviceId = document.getElementById('jo-service').value;
+  const partsId   = document.getElementById('jo-part').value;
+  const price     = parseFloat(document.getElementById('jo-price').value);
+  const qty       = parseInt(document.getElementById('jo-quantity').value) || 1;
+  if (!serviceId)   return showToast('Please select a Service.', 'error');
+  if (!partsId)     return showToast('Please select a Part.', 'error');
+  if (isNaN(price)) return showToast('Unit Price is required.', 'error');
+  try {
+    const { error } = await db.from('joborder').insert([{
+      serviceid: parseInt(serviceId), partsid: parseInt(partsId), unitprice: price, quantity: qty
+    }]);
+    if (error) throw error;
+    showToast('Job Order added!', 'success');
+    ['jo-service','jo-part','jo-price','jo-quantity'].forEach(id=>document.getElementById(id).value='');
+    fetchJobOrders();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+});
+
+// ============================================================
+// SALE DETAILS
+// ============================================================
+async function populateSaleDetailDropdowns() {
+  const [{ data: sales }, { data: prods }] = await Promise.all([
+    db.from('sales').select('saleid, saledate').order('saleid'),
+    db.from('products').select('productid, productname').order('productname')
+  ]);
+  document.getElementById('sd-sale').innerHTML =
+    '<option value="">-- Sale --</option>' +
+    (sales||[]).map(s=>`<option value="${s.saleid}">[${s.saleid}] ${s.saledate}</option>`).join('');
+  document.getElementById('sd-product').innerHTML =
+    '<option value="">-- Product --</option>' +
+    (prods||[]).map(p=>`<option value="${p.productid}">${p.productname}</option>`).join('');
+}
+
+async function fetchSaleDetails() {
+  await populateSaleDetailDropdowns();
+  const tbody = document.getElementById('saledetails-body');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
+  try {
+    const { data, error } = await db.from('sale_details')
+      .select('saledetailid, saleid, quantity, unitprice, sales(saledate), products(productname)')
+      .order('saledetailid');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.saledetailid}</td>
+        <td>${r.saleid}</td>
+        <td>${r.sales?.saledate||''}</td>
+        <td>${r.products?.productname||''}</td>
+        <td>${r.quantity}</td>
+        <td>${Number(r.unitprice).toFixed(2)}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('sale_details','saledetailid',${r.saledetailid},'Sale Detail',fetchSaleDetails)">Remove</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('btn-add-saledetail').addEventListener('click', async () => {
+  const saleId    = document.getElementById('sd-sale').value;
+  const productId = document.getElementById('sd-product').value;
+  const qty       = parseInt(document.getElementById('sd-quantity').value) || 1;
+  const price     = parseFloat(document.getElementById('sd-unitprice').value);
+  if (!saleId)      return showToast('Please select a Sale.', 'error');
+  if (!productId)   return showToast('Please select a Product.', 'error');
+  if (isNaN(price)) return showToast('Unit Price is required.', 'error');
+  try {
+    const { error } = await db.from('sale_details').insert([{
+      saleid: parseInt(saleId), productid: parseInt(productId), quantity: qty, unitprice: price
+    }]);
+    if (error) throw error;
+    showToast('Sale Detail added!', 'success');
+    ['sd-sale','sd-product','sd-quantity','sd-unitprice'].forEach(id=>document.getElementById(id).value='');
+    fetchSaleDetails();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+});
+
+// ============================================================
+// PRODUCT PRICE HISTORY
+// ============================================================
+async function populatePriceHistoryDropdown() {
+  const { data: prods } = await db.from('products').select('productid, productname').order('productname');
+  document.getElementById('ph-product').innerHTML =
+    '<option value="">-- Product --</option>' +
+    (prods||[]).map(p=>`<option value="${p.productid}">${p.productname}</option>`).join('');
+}
+
+async function fetchPriceHistory() {
+  await populatePriceHistoryDropdown();
+  const tbody = document.getElementById('pricehistory-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  try {
+    const { data, error } = await db.from('product_price_history')
+      .select('pricehistoryid, productid, oldunitprice, newunitprice, changedate, products(productname)')
+      .order('pricehistoryid');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.pricehistoryid}</td>
+        <td>${r.products?.productname||''}</td>
+        <td>${Number(r.oldunitprice).toFixed(2)}</td>
+        <td>${Number(r.newunitprice).toFixed(2)}</td>
+        <td>${r.changedate}</td>
+        <td><button class="remove-btn" onclick="deleteRecord('product_price_history','pricehistoryid',${r.pricehistoryid},'Price History',fetchPriceHistory)">Remove</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('btn-add-pricehistory').addEventListener('click', async () => {
+  const productId = document.getElementById('ph-product').value;
+  const oldPrice  = parseFloat(document.getElementById('ph-oldprice').value);
+  const newPrice  = parseFloat(document.getElementById('ph-newprice').value);
+  const date      = document.getElementById('ph-date').value;
+  if (!productId)     return showToast('Please select a Product.', 'error');
+  if (isNaN(oldPrice)) return showToast('Old Unit Price is required.', 'error');
+  if (isNaN(newPrice)) return showToast('New Unit Price is required.', 'error');
+  if (!date)          return showToast('Change Date is required.', 'error');
+  try {
+    const { error } = await db.from('product_price_history').insert([{
+      productid: parseInt(productId), oldunitprice: oldPrice, newunitprice: newPrice, changedate: date
+    }]);
+    if (error) throw error;
+    showToast('Price History added!', 'success');
+    ['ph-product','ph-oldprice','ph-newprice','ph-date'].forEach(id=>document.getElementById(id).value='');
+    fetchPriceHistory();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+});
