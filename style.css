@@ -1,23 +1,14 @@
 /* ============================================================
    AskTech Management System — style.css
-   Design: Navy header / white body / bordered table
-   Matches the provided screenshot layout exactly
+   Original design: navy blue header + top nav tabs
    ============================================================ */
 
-/* ============================================================
-   RESET & BASE
-   ============================================================ */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: Arial, sans-serif;
-  font-size: 14px;
-  background-color: #f0f0f0;
-  color: #111;
+  background: #f0f2f5;
+  color: #222;
   min-height: 100vh;
 }
 
@@ -25,327 +16,494 @@ body {
    HEADER
    ============================================================ */
 .site-header {
-  background-color: #0a3d6b;  /* navy blue matching screenshot */
-  color: #fff;
-  padding: 14px 20px 16px;
-  text-align: center;
+  background: #0a3d6b;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  min-height: 54px;
 }
 
 .site-title {
-  font-size: 26px;
+  color: #fff;
+  font-size: 18px;
   font-weight: bold;
-  margin-bottom: 14px;
-  letter-spacing: 0.3px;
+  white-space: nowrap;
+  padding: 10px 0;
 }
 
 /* ============================================================
-   TOP NAV BUTTONS
+   TOP NAV TABS
    ============================================================ */
 .top-nav {
   display: flex;
-  justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
+  padding: 8px 0;
 }
 
 .nav-btn {
-  background-color: #f0f0f0;
-  color: #111;
-  border: 1px solid #ccc;
-  padding: 5px 16px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.8);
+  padding: 6px 14px;
+  border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
-  border-radius: 3px;
-  transition: background-color 0.15s;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
 .nav-btn:hover {
-  background-color: #dce8f5;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
 }
 
 .nav-btn.active {
-  background-color: #ffffff;
-  border-color: #fff;
-  font-weight: bold;
+  background: #fff;
   color: #0a3d6b;
+  font-weight: bold;
+  border-color: #fff;
 }
 
 /* ============================================================
    MAIN CONTENT
    ============================================================ */
 .content {
-  padding: 18px 12px 40px;
-  max-width: 1300px;
+  padding: 24px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* ============================================================
    PAGE SECTIONS
    ============================================================ */
-.page {
-  display: none;
-}
-
-.page.active {
-  display: block;
-}
+.page { display: none; }
+.page.active { display: block; }
 
 .page-title {
   font-size: 20px;
   font-weight: bold;
-  margin-bottom: 14px;
-  color: #111;
+  color: #0a3d6b;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #0a3d6b;
 }
 
 /* ============================================================
-   INLINE FORM ROW (matching screenshot)
+   DASHBOARD STATS
+   ============================================================ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #dde3ed;
+  border-radius: 6px;
+  padding: 18px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.stat-card.low-stock {
+  border-left: 4px solid #e53e3e;
+}
+
+.stat-num {
+  font-size: 30px;
+  font-weight: bold;
+  color: #0a3d6b;
+  line-height: 1;
+}
+
+.stat-card.low-stock .stat-num { color: #e53e3e; }
+
+.stat-lbl {
+  font-size: 13px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* ============================================================
+   DASHBOARD GRID
+   ============================================================ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.dash-card {
+  background: #fff;
+  border: 1px solid #dde3ed;
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.dash-card-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #0a3d6b;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8edf5;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ============================================================
+   INLINE FORM (add row above table)
    ============================================================ */
 .inline-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 10px;
+  gap: 8px;
+  align-items: flex-end;
+  background: #fff;
+  border: 1px solid #dde3ed;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .inline-form input,
 .inline-form select {
-  padding: 5px 8px;
-  border: 1px solid #bbb;
-  border-radius: 3px;
+  padding: 7px 10px;
+  border: 1px solid #ccd4e0;
+  border-radius: 4px;
   font-size: 13px;
-  background: #fff;
-  color: #111;
-  height: 28px;
-  min-width: 140px;
+  color: #222;
+  background: #f9fafc;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 120px;
 }
 
 .inline-form input:focus,
 .inline-form select:focus {
-  outline: none;
   border-color: #0a3d6b;
+  background: #fff;
 }
 
-/* Add button */
 .add-btn {
-  padding: 5px 14px;
-  height: 28px;
-  background-color: #f0f0f0;
-  color: #111;
-  border: 1px solid #bbb;
-  border-radius: 3px;
+  padding: 7px 18px;
+  background: #0a3d6b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
   font-size: 13px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background 0.15s;
   white-space: nowrap;
-  transition: background-color 0.15s;
 }
 
-.add-btn:hover {
-  background-color: #dce8f5;
-  border-color: #0a3d6b;
-}
-
-.add-btn:active {
-  background-color: #c5d9ee;
-}
+.add-btn:hover { background: #0d4f88; }
 
 /* ============================================================
-   SEARCH ROW
+   SEARCH BAR
    ============================================================ */
 .search-row {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .search-row input {
-  padding: 5px 8px;
-  border: 1px solid #bbb;
-  border-radius: 3px;
+  padding: 7px 12px;
+  border: 1px solid #ccd4e0;
+  border-radius: 4px;
   font-size: 13px;
+  width: 100%;
+  max-width: 360px;
+  outline: none;
   background: #fff;
-  color: #111;
-  width: 240px;
-  height: 28px;
 }
 
-.search-row input:focus {
-  outline: none;
-  border-color: #0a3d6b;
-}
+.search-row input:focus { border-color: #0a3d6b; }
 
 /* ============================================================
-   DATA TABLE (matching bordered style in screenshot)
+   DATA TABLE
    ============================================================ */
 .table-container {
-  width: 100%;
   overflow-x: auto;
+  background: #fff;
+  border: 1px solid #dde3ed;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border: 1px solid #ccc;
   font-size: 13px;
 }
 
 .data-table thead tr {
-  background-color: #fff;
-  border-bottom: 2px solid #ccc;
+  background: #eaf0f8;
+  border-bottom: 2px solid #c5d4e8;
 }
 
 .data-table th {
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: left;
   font-weight: bold;
-  font-style: italic;
-  border-right: 1px solid #ccc;
-  color: #111;
+  color: #0a3d6b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   white-space: nowrap;
 }
 
-.data-table th:last-child {
-  border-right: none;
-}
-
 .data-table tbody tr {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8edf5;
+  transition: background 0.1s;
 }
 
-.data-table tbody tr:hover {
-  background-color: #f5f9ff;
-}
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: #f4f8ff; }
 
 .data-table td {
-  padding: 7px 12px;
-  border-right: 1px solid #ddd;
-  color: #222;
+  padding: 10px 14px;
   vertical-align: middle;
+  color: #333;
 }
 
-.data-table td:last-child {
-  border-right: none;
-}
-
-/* "No data found" row */
 .empty-msg {
   text-align: center;
-  color: #888;
+  color: #999;
   font-style: italic;
-  padding: 20px !important;
+  padding: 28px !important;
 }
-
 
 /* ============================================================
    INLINE EDITABLE FIELDS (inside table cells)
    ============================================================ */
-.inline-edit {
-  padding: 3px 6px;
+.inline-num,
+.inline-select,
+.inline-text {
+  padding: 4px 7px;
   border: 1px solid #bbb;
   border-radius: 3px;
   font-size: 12px;
   background: #fff;
   color: #111;
-  width: 100%;
-  max-width: 180px;
+  outline: none;
+  transition: border-color 0.15s;
 }
 
-.inline-edit:focus {
-  outline: none;
+.inline-num  { width: 72px; text-align: center; }
+.inline-select { max-width: 130px; }
+.inline-text { width: 160px; }
+
+.inline-num:focus,
+.inline-select:focus,
+.inline-text:focus {
   border-color: #0a3d6b;
   background: #f0f6ff;
 }
 
-select.inline-edit {
-  max-width: 130px;
+/* ============================================================
+   BADGES (status)
+   ============================================================ */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
 }
 
+.badge-green  { background: #d1fae5; color: #065f46; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+.badge-grey   { background: #f1f5f9; color: #475569; }
+
 /* ============================================================
-   SAVE BUTTON
+   ACTION CELL BUTTONS
    ============================================================ */
+.action-cell {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
 .save-btn {
   padding: 3px 10px;
-  background-color: #f0f7ff;
+  background: #f0f7ff;
   color: #0a3d6b;
   border: 1px solid #aac8ee;
   border-radius: 3px;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
-  margin-right: 4px;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .save-btn:hover {
-  background-color: #0a3d6b;
+  background: #0a3d6b;
   color: #fff;
   border-color: #0a3d6b;
 }
 
-/* ============================================================
-   REMOVE BUTTON
-   ============================================================ */
 .remove-btn {
   padding: 3px 10px;
-  background-color: #fff0f0;
+  background: #fff0f0;
   color: #c00;
   border: 1px solid #f5b8b8;
   border-radius: 3px;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .remove-btn:hover {
-  background-color: #c00;
+  background: #c00;
   color: #fff;
   border-color: #c00;
 }
 
 /* ============================================================
-   TOAST NOTIFICATION
+   TOAST
    ============================================================ */
 .toast {
   position: fixed;
   bottom: 20px;
   right: 20px;
   z-index: 999;
+  padding: 11px 18px;
+  border-radius: 5px;
   font-size: 13px;
-  padding: 10px 18px;
-  border-radius: 4px;
-  background: #333;
+  font-weight: bold;
+  background: #1a202c;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   transform: translateY(60px);
   opacity: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-  max-width: 300px;
+  transition: all 0.25s ease;
+  max-width: 320px;
   pointer-events: none;
 }
 
-.toast.show {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.toast.success { background: #2e7d32; }
-.toast.error   { background: #c62828; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: #065f46; border-left: 4px solid #10b981; }
+.toast.error   { background: #7f1d1d; border-left: 4px solid #ef4444; }
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
-@media (max-width: 768px) {
-  .site-title { font-size: 20px; }
-  .inline-form input,
-  .inline-form select { min-width: 120px; }
-  .content { padding: 12px 8px 40px; }
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 480px) {
-  .top-nav { gap: 5px; }
-  .nav-btn { font-size: 12px; padding: 4px 10px; }
-  .inline-form { flex-direction: column; align-items: flex-start; }
-  .inline-form input,
-  .inline-form select,
-  .add-btn { width: 100%; }
-  .search-row input { width: 100%; }
+@media (max-width: 600px) {
+  .site-header { flex-direction: column; align-items: flex-start; padding: 10px 14px; }
+  .top-nav { gap: 3px; }
+  .nav-btn { padding: 5px 10px; font-size: 12px; }
+  .inline-form { flex-direction: column; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ============================================================
+   PRODUCTS — BRAND SIDEBAR LAYOUT
+   ============================================================ */
+.products-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+
+.brand-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.brand-search-row {
+  padding: 8px;
+  border-bottom: 1px solid #d0d0d0;
+  background: #f5f7fa;
+}
+
+.brand-search-row input {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.brand-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.brand-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background 0.15s;
+}
+
+.brand-item:last-child { border-bottom: none; }
+
+.brand-item:hover { background: #e8eef5; }
+
+.brand-item.active-brand {
+  background: #0a3d6b;
+  color: #fff;
+}
+
+.brand-item.active-brand .brand-del { color: #aac4e0; }
+
+.empty-brand {
+  color: #888;
+  font-weight: 400;
+  cursor: default;
+  justify-content: center;
+}
+
+.brand-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.brand-del:hover { background: rgba(0,0,0,0.1); color: #c00; }
+
+.products-right {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .products-layout { flex-direction: column; }
+  .brand-sidebar { width: 100%; }
 }

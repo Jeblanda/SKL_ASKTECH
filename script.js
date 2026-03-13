@@ -1,748 +1,647 @@
-/* ============================================================
+/* ═══════════════════════════════════════════════════════
    AskTech Management System — script.js
-   All column names lowercased to match PostgreSQL schema cache
-   Includes Remove button on every table row
-   ============================================================ */
-
-const SUPABASE_URL      = 'https://qqmujlxlmcubemdblisx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxbXVqbHhsbWN1YmVtZGJsaXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzODQ0NjIsImV4cCI6MjA4ODk2MDQ2Mn0.7rYQAJzQT23kBhUeqP8-RAJS67EHIX8dgFdEIOBzMpA';
-
+═══════════════════════════════════════════════════════ */
+const SUPA_URL = 'https://qqmujlxlmcubemdblisx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxbXVqbHhsbWN1YmVtZGJsaXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzODQ0NjIsImV4cCI6MjA4ODk2MDQ2Mn0.7rYQAJzQT23kBhUeqP8-RAJS67EHIX8dgFdEIOBzMpA';
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = createClient(SUPA_URL, SUPA_KEY);
 
-// ============================================================
-// TOAST
-// ============================================================
-function showToast(msg, type = '') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => { toast.className = 'toast'; }, 3500);
+/* ─── helpers ─── */
+const $  = id => document.getElementById(id);
+const fmt   = n => '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fdate = d => d ? new Date(d).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—';
+
+function toast(msg, type=''){
+  const el=$('toast'); el.textContent=msg;
+  el.className='toast show '+(type==='ok'?'success':type==='err'?'error':'');
+  clearTimeout(el._t); el._t=setTimeout(()=>{ el.className='toast'; },3200);
 }
 
-// ============================================================
-// CONFIRM + DELETE HELPER
-// Reusable delete function for any table
-// ============================================================
-async function deleteRecord(table, column, id, label, refreshFn) {
-  if (!confirm(`Remove this ${label}? This cannot be undone.`)) return;
-  try {
-    const { error } = await db.from(table).delete().eq(column, id);
-    if (error) throw error;
-    showToast(`${label} removed successfully.`, 'success');
-    refreshFn();
-  } catch (err) {
-    showToast('Error removing record: ' + err.message, 'error');
-  }
-}
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-const navBtns = document.querySelectorAll('.nav-btn');
-const pages   = document.querySelectorAll('.page');
-
-navBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    navBtns.forEach(b => b.classList.remove('active'));
+/* ─── NAVIGATION ─── */
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const page = btn.dataset.page;
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    pages.forEach(p => p.classList.remove('active'));
-    const target = document.getElementById('page-' + btn.dataset.page);
-    if (target) target.classList.add('active');
-    loadPage(btn.dataset.page);
+    $('page-'+page).classList.add('active');
+    loadPage(page);
   });
 });
 
-function loadPage(pageId) {
-  switch (pageId) {
-    case 'customers':      fetchCustomers();      break;
-    case 'products':       fetchProducts();       break;
-    case 'sales':          fetchSales();          break;
-    case 'services':       fetchServices();       break;
-    case 'employees':      fetchEmployees();      break;
-    case 'parts':          fetchParts();          break;
-    case 'servicehistory': fetchServiceHistory(); break;
-    case 'joborder':       fetchJobOrders();      break;
-    case 'saledetails':    fetchSaleDetails();    break;
-    case 'pricehistory':   fetchPriceHistory();   break;
+function loadPage(p){
+  switch(p){
+    case 'dashboard':     loadDashboard();      break;
+    case 'customers':     loadCustomers();      break;
+    case 'employees':     loadEmployees();      break;
+    case 'products':      loadProducts();       break;
+    case 'parts':         loadParts();          break;
+    case 'services':      loadServices();       break;
+    case 'servicehistory':loadServiceHistory(); break;
+    case 'joborder':      loadJobOrders();      break;
+    case 'sales':         loadSales();          break;
+    case 'saledetails':   loadSaleDetails();    break;
+    case 'pricehistory':  loadPriceHistory();   break;
   }
 }
 
-// ============================================================
-// SEARCH / FILTER
-// ============================================================
-function filterTable(tbodyId, term) {
-  const tbody = document.getElementById(tbodyId);
-  if (!tbody) return;
-  const t = term.toLowerCase().trim();
-  tbody.querySelectorAll('tr').forEach(row => {
-    if (row.querySelector('.empty-msg')) return;
-    row.style.display = (!t || row.textContent.toLowerCase().includes(t)) ? '' : 'none';
+/* ─── SEARCH FILTER ─── */
+function filterTable(tbodyId, term){
+  const t=term.toLowerCase().trim();
+  document.getElementById(tbodyId).querySelectorAll('tr').forEach(row=>{
+    if(row.querySelector('.empty-msg')) return;
+    row.style.display=(!t||row.textContent.toLowerCase().includes(t))?'':'none';
   });
 }
 
-// ============================================================
-// CUSTOMERS
-// ============================================================
-async function fetchCustomers() {
-  const tbody = document.getElementById('customers-body');
-  tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('customers')
-      .select('customerid, customername, contactnumber, address')
-      .order('customerid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.customerid}</td>
-        <td>${r.customername}</td>
-        <td>${r.contactnumber || ''}</td>
-        <td>${r.address || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('customers','customerid',${r.customerid},'Customer',fetchCustomers)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading customers: ' + err.message, 'error');
-  }
+/* ─── DELETE helper ─── */
+async function delRecord(table, col, id, label, refresh){
+  if(!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+  const {error}=await db.from(table).delete().eq(col,id);
+  if(error) return toast(error.message,'err');
+  toast(`${label} deleted.`,'ok'); refresh();
 }
 
-document.getElementById('btn-add-customer').addEventListener('click', async () => {
-  const name    = document.getElementById('c-name').value.trim();
-  const contact = document.getElementById('c-contact').value.trim();
-  const address = document.getElementById('c-address').value.trim();
-  if (!name) return showToast('Customer Name is required.', 'error');
-  try {
-    const { error } = await db.from('customers').insert([{
-      customername:  name,
-      contactnumber: contact || null,
-      address:       address || null
-    }]);
-    if (error) throw error;
-    showToast('Customer added!', 'success');
-    document.getElementById('c-name').value    = '';
-    document.getElementById('c-contact').value = '';
-    document.getElementById('c-address').value = '';
-    fetchCustomers();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════════════ */
+async function loadDashboard(){
+  // counts
+  const pairs=[['customers','s-customers'],['employees','s-employees'],['products','s-products'],['services','s-services'],['sales','s-sales']];
+  for(const [tbl,id] of pairs){
+    const {count}=await db.from(tbl).select('*',{count:'exact',head:true});
+    $(id).textContent=count??0;
+  }
+  // low stock
+  const {data:prods}=await db.from('products').select('quantityonhand,reorderlevel');
+  $('s-lowstock').textContent=(prods||[]).filter(r=>r.quantityonhand<=r.reorderlevel).length;
+
+  // recent services with latest status
+  const {data:svcs}=await db.from('services')
+    .select('serviceid,servicetype,servicedate,customers(customername)')
+    .order('servicedate',{ascending:false}).limit(6);
+  const {data:hist}=await db.from('service_history')
+    .select('serviceid,status').order('updatedate',{ascending:false});
+  const latestSt={};
+  (hist||[]).forEach(h=>{ if(!latestSt[h.serviceid]) latestSt[h.serviceid]=h.status; });
+
+  $('dash-services').innerHTML=(svcs||[]).length===0
+    ?'<tr><td colspan="5" class="empty-msg">No services yet.</td></tr>'
+    :(svcs||[]).map(r=>`<tr>
+        <td>${r.serviceid}</td><td>${r.servicetype}</td>
+        <td>${fdate(r.servicedate)}</td>
+        <td>${r.customers?.customername||'—'}</td>
+        <td>${statusBadge(latestSt[r.serviceid]||'—')}</td>
+      </tr>`).join('');
+
+  // recent sales
+  const {data:sales}=await db.from('sales')
+    .select('saleid,saledate,totalamount,customers(customername)')
+    .order('saledate',{ascending:false}).limit(6);
+  $('dash-sales').innerHTML=(sales||[]).length===0
+    ?'<tr><td colspan="4" class="empty-msg">No sales yet.</td></tr>'
+    :(sales||[]).map(r=>`<tr>
+        <td>${r.saleid}</td><td>${fdate(r.saledate)}</td>
+        <td>${fmt(r.totalamount)}</td>
+        <td>${r.customers?.customername||'—'}</td>
+      </tr>`).join('');
+}
+
+function statusBadge(s){
+  const m={'Completed':'badge-green','In Progress':'badge-blue','Pending':'badge-yellow','Cancelled':'badge-red'};
+  return `<span class="badge ${m[s]||'badge-grey'}">${s}</span>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CUSTOMERS
+═══════════════════════════════════════════════════════ */
+async function loadCustomers(){
+  const tb=$('tb-customers');
+  tb.innerHTML='<tr><td colspan="5" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('customers').select('*').order('customerid');
+  if(error){tb.innerHTML=`<tr><td colspan="5" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="5" class="empty-msg">No customers found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.customerid}</td>
+    <td>${r.customername}</td>
+    <td>${r.contactnumber||'—'}</td>
+    <td>${r.address||'—'}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('customers','customerid',${r.customerid},'Customer',loadCustomers)">Remove</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+$('btn-add-customer').addEventListener('click', async ()=>{
+  const name=$('c-name').value.trim();
+  if(!name) return toast('Customer name is required.','err');
+  const {error}=await db.from('customers').insert([{
+    customername:name,
+    contactnumber:$('c-contact').value.trim()||null,
+    address:$('c-address').value.trim()||null
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Customer added!','ok');
+  ['c-name','c-contact','c-address'].forEach(id=>$(id).value='');
+  loadCustomers();
 });
 
-// ============================================================
-// PRODUCTS
-// ============================================================
-async function fetchProducts() {
-  const tbody = document.getElementById('products-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('products')
-      .select('productid, productname, producttype, unitprice, quantityonhand, reorderlevel')
-      .order('productid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.productid}</td>
-        <td>${r.productname}</td>
-        <td>${r.producttype || ''}</td>
-        <td>${Number(r.unitprice).toFixed(2)}</td>
-        <td><input type="number" class="inline-edit" id="qty-${r.productid}" value="${r.quantityonhand}" min="0" /></td>
-        <td>${r.reorderlevel}</td>
-        <td>
-          <button class="save-btn" onclick="updateQty(${r.productid})">Save Qty</button>
-          <button class="remove-btn" onclick="deleteRecord('products','productid',${r.productid},'Product',fetchProducts)">Remove</button>
-        </td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading products: ' + err.message, 'error');
-  }
+/* ═══════════════════════════════════════════════════════
+   EMPLOYEES
+═══════════════════════════════════════════════════════ */
+async function loadEmployees(){
+  const tb=$('tb-employees');
+  tb.innerHTML='<tr><td colspan="7" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('employees').select('*').order('employeeid');
+  if(error){tb.innerHTML=`<tr><td colspan="7" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="7" class="empty-msg">No employees found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.employeeid}</td>
+    <td>${r.employeename}</td>
+    <td>${r.role||'—'}</td>
+    <td>${r.contactno||'—'}</td>
+    <td>${r.emailadd||'—'}</td>
+    <td>${r.address||'—'}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('employees','employeeid',${r.employeeid},'Employee',loadEmployees)">Remove</button>
+    </div></td>
+  </tr>`).join('');
 }
 
-// Update Qty On Hand inline
-async function updateQty(productId) {
-  const input = document.getElementById('qty-' + productId);
-  const qty = parseInt(input.value);
-  if (isNaN(qty) || qty < 0) return showToast('Enter a valid quantity.', 'error');
-  try {
-    const { error } = await db.from('products').update({ quantityonhand: qty }).eq('productid', productId);
-    if (error) throw error;
-    showToast('Quantity updated!', 'success');
-    fetchProducts();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-}
-
-document.getElementById('btn-add-product').addEventListener('click', async () => {
-  const name    = document.getElementById('p-name').value.trim();
-  const type    = document.getElementById('p-type').value.trim();
-  const price   = parseFloat(document.getElementById('p-price').value);
-  const qty     = parseInt(document.getElementById('p-qty').value) || 0;
-  const reorder = parseInt(document.getElementById('p-reorder').value) || 0;
-  if (!name) return showToast('Product Name is required.', 'error');
-  if (isNaN(price)) return showToast('Unit Price is required.', 'error');
-  try {
-    const { error } = await db.from('products').insert([{
-      productname:    name,
-      producttype:    type || null,
-      unitprice:      price,
-      quantityonhand: qty,
-      reorderlevel:   reorder
-    }]);
-    if (error) throw error;
-    showToast('Product added!', 'success');
-    ['p-name','p-type','p-price','p-qty','p-reorder'].forEach(id => document.getElementById(id).value = '');
-    fetchProducts();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+$('btn-add-employee').addEventListener('click', async ()=>{
+  const name=$('e-name').value.trim();
+  if(!name) return toast('Employee name is required.','err');
+  const {error}=await db.from('employees').insert([{
+    employeename:name, role:$('e-role').value.trim()||null,
+    contactno:$('e-contact').value.trim()||null, emailadd:$('e-email').value.trim()||null,
+    address:$('e-address').value.trim()||null
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Employee added!','ok');
+  ['e-name','e-role','e-contact','e-email','e-address'].forEach(id=>$(id).value='');
+  loadEmployees();
 });
 
-// ============================================================
-// SALES
-// ============================================================
-async function populateSalesDropdowns() {
-  const [{ data: custs }, { data: emps }] = await Promise.all([
-    db.from('customers').select('customerid, customername').order('customername'),
-    db.from('employees').select('employeeid, employeename').order('employeename')
+/* ═══════════════════════════════════════════════════════
+   PRODUCTS (Engine Brand / Model / Parts layout)
+═══════════════════════════════════════════════════════ */
+let _activeBrand = null; // currently selected brand filter
+
+async function loadProducts(){
+  await loadBrands();
+  renderProducts(_activeBrand);
+}
+
+async function loadBrands(){
+  const {data}=await db.from('engine_brands').select('*').order('brandname');
+  const ul=$('brand-list');
+  if(!data||!data.length){
+    ul.innerHTML='<li class="brand-item empty-brand">No brands yet.</li>';
+    populateSel('p-brand',[]);
+    return;
+  }
+  ul.innerHTML=data.map(b=>`
+    <li class="brand-item${_activeBrand===b.brandid?' active-brand':''}"
+        onclick="selectBrand(${b.brandid},'${b.brandname.replace(/'/g,"\\'")}')">
+      ${b.brandname}
+      <button class="brand-del" onclick="event.stopPropagation();delBrand(${b.brandid},'${b.brandname.replace(/'/g,"\\'")}')">✕</button>
+    </li>`).join('');
+  // populate brand dropdown in add form
+  const sel=$('p-brand');
+  sel.innerHTML='<option value="">— Engine Brand —</option>'+data.map(b=>`<option value="${b.brandid}">${b.brandname}</option>`).join('');
+}
+
+function selectBrand(id, name){
+  _activeBrand = (_activeBrand===id) ? null : id; // toggle off if same
+  renderProducts(_activeBrand);
+  // re-highlight
+  document.querySelectorAll('.brand-item').forEach(li=>{
+    li.classList.toggle('active-brand', li.textContent.trim().startsWith(name) && _activeBrand!==null);
+  });
+}
+
+function filterBrands(term){
+  const t=term.toLowerCase();
+  document.querySelectorAll('#brand-list .brand-item').forEach(li=>{
+    if(li.classList.contains('empty-brand')) return;
+    li.style.display=li.textContent.toLowerCase().includes(t)?'':'none';
+  });
+}
+
+async function renderProducts(brandId){
+  const tb=$('tb-products');
+  tb.innerHTML='<tr><td colspan="8" class="empty-msg">Loading…</td></tr>';
+  let q=db.from('products')
+    .select('productid,productname,enginemodel,made,partnumber,unitprice,quantityonhand,engine_brands(brandname)')
+    .order('productname');
+  if(brandId) q=q.eq('brandid',brandId);
+  const {data,error}=await q;
+  if(error){tb.innerHTML=`<tr><td colspan="8" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="8" class="empty-msg">No products found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.engine_brands?.brandname||'—'}</td>
+    <td>${r.enginemodel||'—'}</td>
+    <td>${r.productname}</td>
+    <td>${r.made||'—'}</td>
+    <td>${r.partnumber||'—'}</td>
+    <td>${fmt(r.unitprice)}</td>
+    <td><input class="inline-num" type="number" id="pqty-${r.productid}" value="${r.quantityonhand}" min="0"/></td>
+    <td><div class="action-cell">
+      <button class="save-btn" onclick="saveQty(${r.productid})">Save</button>
+      <button class="remove-btn" onclick="delRecord('products','productid',${r.productid},'Product',loadProducts)">Remove</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function saveQty(pid){
+  const qty=parseInt($('pqty-'+pid).value);
+  if(isNaN(qty)||qty<0) return toast('Enter a valid quantity.','err');
+  const {error}=await db.from('products').update({quantityonhand:qty}).eq('productid',pid);
+  if(error) return toast(error.message,'err');
+  toast('Stock updated!','ok'); renderProducts(_activeBrand);
+}
+
+async function delBrand(id, name){
+  if(!confirm(`Delete brand "${name}"? Products under this brand will also be removed.`)) return;
+  const {error}=await db.from('engine_brands').delete().eq('brandid',id);
+  if(error) return toast(error.message,'err');
+  if(_activeBrand===id) _activeBrand=null;
+  toast('Brand deleted.','ok'); loadProducts();
+}
+
+$('btn-add-brand').addEventListener('click', async ()=>{
+  const name=$('p-brand-new').value.trim();
+  if(!name) return toast('Brand name is required.','err');
+  const {error}=await db.from('engine_brands').insert([{brandname:name}]);
+  if(error) return toast(error.message,'err');
+  toast('Brand added!','ok'); $('p-brand-new').value=''; loadProducts();
+});
+
+$('btn-add-product').addEventListener('click', async ()=>{
+  const brandId=$('p-brand').value, name=$('p-name').value.trim(), price=parseFloat($('p-price').value);
+  if(!brandId) return toast('Select an engine brand.','err');
+  if(!name)    return toast('Spare parts name is required.','err');
+  if(isNaN(price)) return toast('Unit price is required.','err');
+  const {error}=await db.from('products').insert([{
+    brandid:parseInt(brandId),
+    enginemodel:$('p-model').value.trim()||null,
+    productname:name,
+    made:$('p-made').value.trim()||null,
+    partnumber:$('p-partno').value.trim()||null,
+    unitprice:price,
+    quantityonhand:parseInt($('p-qty').value)||0,
+    reorderlevel:0
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Product added!','ok');
+  ['p-model','p-name','p-made','p-partno','p-price','p-qty'].forEach(id=>$(id).value='');
+  $('p-brand').value='';
+  loadProducts();
+});
+
+/* ═══════════════════════════════════════════════════════
+   PARTS
+═══════════════════════════════════════════════════════ */
+async function loadParts(){
+  const tb=$('tb-parts');
+  tb.innerHTML='<tr><td colspan="4" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('parts').select('*').order('partsid');
+  if(error){tb.innerHTML=`<tr><td colspan="4" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="4" class="empty-msg">No parts found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.partsid}</td>
+    <td>${r.partsname}</td>
+    <td>${r.description||'—'}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('parts','partsid',${r.partsid},'Part',loadParts)">Remove</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+$('btn-add-part').addEventListener('click', async ()=>{
+  const name=$('pt-name').value.trim();
+  if(!name) return toast('Part name is required.','err');
+  const {error}=await db.from('parts').insert([{partsname:name, description:$('pt-desc').value.trim()||null}]);
+  if(error) return toast(error.message,'err');
+  toast('Part added!','ok');
+  ['pt-name','pt-desc'].forEach(id=>$(id).value='');
+  loadParts();
+});
+
+/* ═══════════════════════════════════════════════════════
+   SERVICES (load dropdowns)
+═══════════════════════════════════════════════════════ */
+async function loadServiceDropdowns(){
+  const [{data:custs},{data:prods},{data:emps}]=await Promise.all([
+    db.from('customers').select('customerid,customername').order('customername'),
+    db.from('products').select('productid,productname').order('productname'),
+    db.from('employees').select('employeeid,employeename').order('employeename'),
   ]);
-  document.getElementById('sl-customer').innerHTML =
-    '<option value="">-- Customer --</option>' +
-    (custs||[]).map(c => `<option value="${c.customerid}">${c.customername}</option>`).join('');
-  document.getElementById('sl-employee').innerHTML =
-    '<option value="">-- Employee --</option>' +
-    (emps||[]).map(e => `<option value="${e.employeeid}">${e.employeename}</option>`).join('');
+  populateSel('sv-customer', custs||[], 'customerid','customername');
+  populateSel('sv-product',  prods||[], 'productid','productname');
+  populateSel('sv-employee', emps||[],  'employeeid','employeename');
 }
 
-async function fetchSales() {
-  await populateSalesDropdowns();
-  const tbody = document.getElementById('sales-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('sales')
-      .select('saleid, saledate, totalamount, customers(customername), employees(employeename)')
-      .order('saleid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.saleid}</td>
-        <td>${r.saledate}</td>
-        <td>${Number(r.totalamount).toFixed(2)}</td>
-        <td>${r.customers?.customername || ''}</td>
-        <td>${r.employees?.employeename || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('sales','saleid',${r.saleid},'Sale',fetchSales)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading sales: ' + err.message, 'error');
-  }
+function populateSel(id, arr, valKey, lblKey, placeholder=''){
+  const sel=$(id); if(!sel) return;
+  const first=sel.options[0]?.value===''?sel.options[0].outerHTML:'';
+  sel.innerHTML=first+arr.map(r=>`<option value="${r[valKey]}">${r[lblKey]}</option>`).join('');
 }
 
-document.getElementById('btn-add-sale').addEventListener('click', async () => {
-  const date   = document.getElementById('sl-date').value;
-  const total  = parseFloat(document.getElementById('sl-total').value);
-  const custId = document.getElementById('sl-customer').value || null;
-  const empId  = document.getElementById('sl-employee').value  || null;
-  if (!date)        return showToast('Sale Date is required.', 'error');
-  if (isNaN(total)) return showToast('Total Amount is required.', 'error');
-  try {
-    const { error } = await db.from('sales').insert([{
-      saledate:    date,
-      totalamount: total,
-      customerid:  custId ? parseInt(custId) : null,
-      employeeid:  empId  ? parseInt(empId)  : null
-    }]);
-    if (error) throw error;
-    showToast('Sale recorded!', 'success');
-    document.getElementById('sl-date').value     = '';
-    document.getElementById('sl-total').value    = '';
-    document.getElementById('sl-customer').value = '';
-    document.getElementById('sl-employee').value = '';
-    fetchSales();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+async function loadServices(){
+  await loadServiceDropdowns();
+  const tb=$('tb-services');
+  tb.innerHTML='<tr><td colspan="7" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('services')
+    .select('serviceid,servicetype,servicedate,customers(customername),products(productname),employees(employeename)')
+    .order('servicedate',{ascending:false});
+  if(error){tb.innerHTML=`<tr><td colspan="7" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="7" class="empty-msg">No services found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.serviceid}</td>
+    <td>${r.servicetype}</td>
+    <td>${fdate(r.servicedate)}</td>
+    <td>${r.customers?.customername||'—'}</td>
+    <td>${r.products?.productname||'—'}</td>
+    <td>${r.employees?.employeename||'—'}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('services','serviceid',${r.serviceid},'Service',loadServices)">Remove</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+$('btn-add-service').addEventListener('click', async ()=>{
+  const type=$('sv-type').value.trim(), date=$('sv-date').value;
+  if(!type) return toast('Service type is required.','err');
+  if(!date) return toast('Date is required.','err');
+  const {error}=await db.from('services').insert([{
+    servicetype:type, servicedate:date,
+    customerid:$('sv-customer').value?parseInt($('sv-customer').value):null,
+    productid: $('sv-product').value? parseInt($('sv-product').value):null,
+    employeeid:$('sv-employee').value?parseInt($('sv-employee').value):null,
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Service added!','ok');
+  $('sv-type').value=''; $('sv-date').value='';
+  loadServices();
 });
 
-// ============================================================
-// SERVICES
-// ============================================================
-async function populateServiceDropdowns() {
-  const [{ data: custs }, { data: prods }, { data: emps }] = await Promise.all([
-    db.from('customers').select('customerid, customername').order('customername'),
-    db.from('products').select('productid, productname').order('productname'),
-    db.from('employees').select('employeeid, employeename').order('employeename')
+/* ═══════════════════════════════════════════════════════
+   SERVICE HISTORY
+═══════════════════════════════════════════════════════ */
+async function loadServiceHistory(){
+  // populate service dropdown
+  const {data:svcs}=await db.from('services').select('serviceid,servicetype').order('serviceid');
+  populateSel('sh-service', svcs||[], 'serviceid','servicetype', '— Service —');
+
+  const tb=$('tb-servicehistory');
+  tb.innerHTML='<tr><td colspan="6" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('service_history')
+    .select('servicehistoryid,serviceid,status,updatedate,notes,services(servicetype)')
+    .order('servicehistoryid',{ascending:false});
+  if(error){tb.innerHTML=`<tr><td colspan="6" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="6" class="empty-msg">No service history found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.servicehistoryid}</td>
+    <td>[${r.serviceid}] ${r.services?.servicetype||'—'}</td>
+    <td>
+      <select class="inline-select" id="shst-${r.servicehistoryid}">
+        ${['Pending','In Progress','Completed','Cancelled'].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </td>
+    <td>${fdate(r.updatedate)}</td>
+    <td><input class="inline-text" type="text" id="shnotes-${r.servicehistoryid}" value="${r.notes||''}" placeholder="Notes"/></td>
+    <td><div class="action-cell">
+      <button class="save-btn" onclick="saveServiceHistory(${r.servicehistoryid})">Save</button>
+      <button class="remove-btn" onclick="delRecord('service_history','servicehistoryid',${r.servicehistoryid},'Record',loadServiceHistory)">Remove</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function saveServiceHistory(id){
+  const status=$('shst-'+id).value, notes=$('shnotes-'+id).value.trim();
+  const {error}=await db.from('service_history').update({status,notes:notes||null}).eq('servicehistoryid',id);
+  if(error) return toast(error.message,'err');
+  toast('Service history updated!','ok'); loadServiceHistory();
+}
+
+$('btn-add-servicehistory').addEventListener('click', async ()=>{
+  const svcId=$('sh-service').value, status=$('sh-status').value, date=$('sh-date').value;
+  if(!svcId)  return toast('Select a service.','err');
+  if(!status) return toast('Select a status.','err');
+  if(!date)   return toast('Date is required.','err');
+  const {error}=await db.from('service_history').insert([{
+    serviceid:parseInt(svcId), status, updatedate:date, notes:$('sh-notes').value.trim()||null
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Service history record added!','ok');
+  $('sh-date').value=''; $('sh-notes').value='';
+  loadServiceHistory();
+});
+
+/* ═══════════════════════════════════════════════════════
+   JOB ORDERS
+═══════════════════════════════════════════════════════ */
+async function loadJobOrders(){
+  const [{data:svcs},{data:pts}]=await Promise.all([
+    db.from('services').select('serviceid,servicetype').order('serviceid'),
+    db.from('parts').select('partsid,partsname').order('partsname'),
   ]);
-  document.getElementById('sv-customer').innerHTML =
-    '<option value="">-- Customer --</option>' +
-    (custs||[]).map(c => `<option value="${c.customerid}">${c.customername}</option>`).join('');
-  document.getElementById('sv-product').innerHTML =
-    '<option value="">-- Product --</option>' +
-    (prods||[]).map(p => `<option value="${p.productid}">${p.productname}</option>`).join('');
-  document.getElementById('sv-employee').innerHTML =
-    '<option value="">-- Employee --</option>' +
-    (emps||[]).map(e => `<option value="${e.employeeid}">${e.employeename}</option>`).join('');
-}
+  populateSel('jo-service', svcs||[], 'serviceid','servicetype');
+  populateSel('jo-part',    pts||[],  'partsid','partsname');
 
-async function fetchServices() {
-  await populateServiceDropdowns();
-  const tbody = document.getElementById('services-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('services')
-      .select('serviceid, servicetype, servicedate, customers(customername), products(productname), employees(employeename)')
-      .order('serviceid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.serviceid}</td>
-        <td>${r.servicetype}</td>
-        <td>${r.servicedate}</td>
-        <td>${r.customers?.customername || ''}</td>
-        <td>${r.products?.productname   || ''}</td>
-        <td>${r.employees?.employeename || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('services','serviceid',${r.serviceid},'Service',fetchServices)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading services: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('btn-add-service').addEventListener('click', async () => {
-  const type   = document.getElementById('sv-type').value.trim();
-  const date   = document.getElementById('sv-date').value;
-  const custId = document.getElementById('sv-customer').value || null;
-  const prodId = document.getElementById('sv-product').value  || null;
-  const empId  = document.getElementById('sv-employee').value  || null;
-  if (!type) return showToast('Service Type is required.', 'error');
-  if (!date) return showToast('Service Date is required.', 'error');
-  try {
-    const { error } = await db.from('services').insert([{
-      servicetype: type,
-      servicedate: date,
-      customerid:  custId ? parseInt(custId) : null,
-      productid:   prodId ? parseInt(prodId) : null,
-      employeeid:  empId  ? parseInt(empId)  : null
-    }]);
-    if (error) throw error;
-    showToast('Service added!', 'success');
-    document.getElementById('sv-type').value     = '';
-    document.getElementById('sv-date').value     = '';
-    document.getElementById('sv-customer').value = '';
-    document.getElementById('sv-product').value  = '';
-    document.getElementById('sv-employee').value = '';
-    fetchServices();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-});
-
-// ============================================================
-// EMPLOYEES
-// ============================================================
-async function fetchEmployees() {
-  const tbody = document.getElementById('employees-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('employees')
-      .select('employeeid, employeename, role, contactno, emailadd, address')
-      .order('employeeid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.employeeid}</td>
-        <td>${r.employeename}</td>
-        <td>${r.role || ''}</td>
-        <td>${r.contactno || ''}</td>
-        <td>${r.emailadd || ''}</td>
-        <td>${r.address || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('employees','employeeid',${r.employeeid},'Employee',fetchEmployees)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading employees: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('btn-add-employee').addEventListener('click', async () => {
-  const name    = document.getElementById('e-name').value.trim();
-  const role    = document.getElementById('e-role').value.trim();
-  const contact = document.getElementById('e-contact').value.trim();
-  const email   = document.getElementById('e-email').value.trim();
-  const address = document.getElementById('e-address').value.trim();
-  if (!name) return showToast('Employee Name is required.', 'error');
-  try {
-    const { error } = await db.from('employees').insert([{
-      employeename: name,
-      role:         role    || null,
-      contactno:    contact || null,
-      emailadd:     email   || null,
-      address:      address || null
-    }]);
-    if (error) throw error;
-    showToast('Employee added!', 'success');
-    ['e-name','e-role','e-contact','e-email','e-address'].forEach(id => document.getElementById(id).value = '');
-    fetchEmployees();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-});
-
-// ============================================================
-// PARTS
-// ============================================================
-async function fetchParts() {
-  const tbody = document.getElementById('parts-body');
-  tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('parts')
-      .select('partsid, partsname, description')
-      .order('partsid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.partsid}</td>
-        <td>${r.partsname}</td>
-        <td>${r.description || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('parts','partsid',${r.partsid},'Part',fetchParts)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading parts: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('btn-add-part').addEventListener('click', async () => {
-  const name = document.getElementById('pt-name').value.trim();
-  const desc = document.getElementById('pt-desc').value.trim();
-  if (!name) return showToast('Parts Name is required.', 'error');
-  try {
-    const { error } = await db.from('parts').insert([{
-      partsname:   name,
-      description: desc || null
-    }]);
-    if (error) throw error;
-    showToast('Part added!', 'success');
-    document.getElementById('pt-name').value = '';
-    document.getElementById('pt-desc').value = '';
-    fetchParts();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-});
-
-// ============================================================
-// SERVICE HISTORY
-// ============================================================
-async function populateServiceHistoryDropdown() {
-  const { data: svcs } = await db
-    .from('services')
-    .select('serviceid, servicetype')
+  const tb=$('tb-joborder');
+  tb.innerHTML='<tr><td colspan="8" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('joborder')
+    .select('serviceid,partsid,unitprice,quantity,services(servicetype),parts(partsname)')
     .order('serviceid');
-  document.getElementById('sh-service').innerHTML =
-    '<option value="">-- Service --</option>' +
-    (svcs||[]).map(s => `<option value="${s.serviceid}">[${s.serviceid}] ${s.servicetype}</option>`).join('');
+  if(error){tb.innerHTML=`<tr><td colspan="8" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="8" class="empty-msg">No job orders found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.serviceid}</td>
+    <td>${r.services?.servicetype||'—'}</td>
+    <td>${r.partsid}</td>
+    <td>${r.parts?.partsname||'—'}</td>
+    <td>${fmt(r.unitprice)}</td>
+    <td>${r.quantity}</td>
+    <td>${fmt(r.unitprice*r.quantity)}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delJobOrder(${r.serviceid},${r.partsid})">Remove</button>
+    </div></td>
+  </tr>`).join('');
 }
 
-async function fetchServiceHistory() {
-  await populateServiceHistoryDropdown();
-  const tbody = document.getElementById('servicehistory-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db
-      .from('service_history')
-      .select('servicehistoryid, serviceid, status, updatedate, notes, services(servicetype)')
-      .order('servicehistoryid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.servicehistoryid}</td>
-        <td>${r.serviceid}</td>
-        <td>${r.services?.servicetype || ''}</td>
-        <td>
-          <select class="inline-edit" id="sh-status-${r.servicehistoryid}">
-            <option value="Pending"     ${r.status==='Pending'     ? 'selected' : ''}>Pending</option>
-            <option value="In Progress" ${r.status==='In Progress' ? 'selected' : ''}>In Progress</option>
-            <option value="Completed"   ${r.status==='Completed'   ? 'selected' : ''}>Completed</option>
-            <option value="Cancelled"   ${r.status==='Cancelled'   ? 'selected' : ''}>Cancelled</option>
-          </select>
-        </td>
-        <td>${r.updatedate}</td>
-        <td><input type="text" class="inline-edit" id="sh-notes-${r.servicehistoryid}" value="${r.notes || ''}" placeholder="Notes" /></td>
-        <td>
-          <button class="save-btn" onclick="updateServiceHistory(${r.servicehistoryid})">Save</button>
-          <button class="remove-btn" onclick="deleteRecord('service_history','servicehistoryid',${r.servicehistoryid},'History Record',fetchServiceHistory)">Remove</button>
-        </td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error loading service history: ' + err.message, 'error');
-  }
+async function delJobOrder(svcId, partId){
+  if(!confirm('Delete this job order entry?')) return;
+  const {error}=await db.from('joborder').delete().eq('serviceid',svcId).eq('partsid',partId);
+  if(error) return toast(error.message,'err');
+  toast('Job order deleted.','ok'); loadJobOrders();
 }
 
-// Update Status and Notes inline for Service History
-async function updateServiceHistory(historyId) {
-  const status = document.getElementById('sh-status-' + historyId).value;
-  const notes  = document.getElementById('sh-notes-'  + historyId).value.trim();
-  try {
-    const { error } = await db.from('service_history')
-      .update({ status: status, notes: notes || null })
-      .eq('servicehistoryid', historyId);
-    if (error) throw error;
-    showToast('Service history updated!', 'success');
-    fetchServiceHistory();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-}
-
-document.getElementById('btn-add-servicehistory').addEventListener('click', async () => {
-  const serviceId = document.getElementById('sh-service').value;
-  const status    = document.getElementById('sh-status').value;
-  const date      = document.getElementById('sh-date').value;
-  const notes     = document.getElementById('sh-notes').value.trim();
-  if (!serviceId) return showToast('Please select a Service.', 'error');
-  if (!status)    return showToast('Please select a Status.', 'error');
-  if (!date)      return showToast('Update Date is required.', 'error');
-  try {
-    const { error } = await db.from('service_history').insert([{
-      serviceid:  parseInt(serviceId),
-      status:     status,
-      updatedate: date,
-      notes:      notes || null
-    }]);
-    if (error) throw error;
-    showToast('Service history record added!', 'success');
-    document.getElementById('sh-service').value = '';
-    document.getElementById('sh-status').value  = '';
-    document.getElementById('sh-date').value    = '';
-    document.getElementById('sh-notes').value   = '';
-    fetchServiceHistory();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+$('btn-add-joborder').addEventListener('click', async ()=>{
+  const svcId=$('jo-service').value, partId=$('jo-part').value;
+  const price=parseFloat($('jo-price').value), qty=parseInt($('jo-quantity').value)||1;
+  if(!svcId)      return toast('Select a service.','err');
+  if(!partId)     return toast('Select a part.','err');
+  if(isNaN(price)) return toast('Unit price is required.','err');
+  const {error}=await db.from('joborder').insert([{
+    serviceid:parseInt(svcId), partsid:parseInt(partId), unitprice:price, quantity:qty
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Job order added!','ok');
+  $('jo-price').value=''; $('jo-quantity').value='1';
+  loadJobOrders();
 });
 
-// ============================================================
-// INIT
-// ============================================================
-fetchCustomers();
-
-// ============================================================
-// JOB ORDER
-// ============================================================
-async function populateJobOrderDropdowns() {
-  const [{ data: svcs }, { data: pts }] = await Promise.all([
-    db.from('services').select('serviceid, servicetype').order('serviceid'),
-    db.from('parts').select('partsid, partsname').order('partsname')
+/* ═══════════════════════════════════════════════════════
+   SALES
+═══════════════════════════════════════════════════════ */
+async function loadSaleDropdowns(){
+  const [{data:custs},{data:emps}]=await Promise.all([
+    db.from('customers').select('customerid,customername').order('customername'),
+    db.from('employees').select('employeeid,employeename').order('employeename'),
   ]);
-  document.getElementById('jo-service').innerHTML =
-    '<option value="">-- Service --</option>' +
-    (svcs||[]).map(s=>`<option value="${s.serviceid}">[${s.serviceid}] ${s.servicetype}</option>`).join('');
-  document.getElementById('jo-part').innerHTML =
-    '<option value="">-- Part --</option>' +
-    (pts||[]).map(p=>`<option value="${p.partsid}">${p.partsname}</option>`).join('');
+  populateSel('sl-customer', custs||[], 'customerid','customername');
+  populateSel('sl-employee', emps||[],  'employeeid','employeename');
 }
 
-async function fetchJobOrders() {
-  await populateJobOrderDropdowns();
-  const tbody = document.getElementById('joborder-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db.from('joborder')
-      .select('serviceid, partsid, unitprice, quantity, services(servicetype), parts(partsname)')
-      .order('serviceid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.serviceid}</td>
-        <td>${r.services?.servicetype||''}</td>
-        <td>${r.partsid}</td>
-        <td>${r.parts?.partsname||''}</td>
-        <td>${Number(r.unitprice).toFixed(2)}</td>
-        <td>${r.quantity}</td>
-        <td><button class="remove-btn" onclick="deleteJobOrder(${r.serviceid},${r.partsid})">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error: ' + err.message, 'error');
-  }
+async function loadSales(){
+  await loadSaleDropdowns();
+  const tb=$('tb-sales');
+  tb.innerHTML='<tr><td colspan="6" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('sales')
+    .select('saleid,saledate,totalamount,customers(customername),employees(employeename)')
+    .order('saledate',{ascending:false});
+  if(error){tb.innerHTML=`<tr><td colspan="6" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="6" class="empty-msg">No sales found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.saleid}</td>
+    <td>${fdate(r.saledate)}</td>
+    <td>${fmt(r.totalamount)}</td>
+    <td>${r.customers?.customername||'—'}</td>
+    <td>${r.employees?.employeename||'—'}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('sales','saleid',${r.saleid},'Sale',loadSales)">Remove</button>
+    </div></td>
+  </tr>`).join('');
 }
 
-async function deleteJobOrder(serviceId, partsId) {
-  if (!confirm('Remove this Job Order? This cannot be undone.')) return;
-  try {
-    const { error } = await db.from('joborder').delete().eq('serviceid', serviceId).eq('partsid', partsId);
-    if (error) throw error;
-    showToast('Job Order removed.', 'success');
-    fetchJobOrders();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
-}
-
-document.getElementById('btn-add-joborder').addEventListener('click', async () => {
-  const serviceId = document.getElementById('jo-service').value;
-  const partsId   = document.getElementById('jo-part').value;
-  const price     = parseFloat(document.getElementById('jo-price').value);
-  const qty       = parseInt(document.getElementById('jo-quantity').value) || 1;
-  if (!serviceId)   return showToast('Please select a Service.', 'error');
-  if (!partsId)     return showToast('Please select a Part.', 'error');
-  if (isNaN(price)) return showToast('Unit Price is required.', 'error');
-  try {
-    const { error } = await db.from('joborder').insert([{
-      serviceid: parseInt(serviceId), partsid: parseInt(partsId), unitprice: price, quantity: qty
-    }]);
-    if (error) throw error;
-    showToast('Job Order added!', 'success');
-    ['jo-service','jo-part','jo-price','jo-quantity'].forEach(id=>document.getElementById(id).value='');
-    fetchJobOrders();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+$('btn-add-sale').addEventListener('click', async ()=>{
+  const date=$('sl-date').value, total=parseFloat($('sl-total').value);
+  if(!date)        return toast('Date is required.','err');
+  if(isNaN(total)) return toast('Total amount is required.','err');
+  const {error}=await db.from('sales').insert([{
+    saledate:date, totalamount:total,
+    customerid:$('sl-customer').value?parseInt($('sl-customer').value):null,
+    employeeid:$('sl-employee').value?parseInt($('sl-employee').value):null,
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Sale added!','ok');
+  $('sl-date').value=''; $('sl-total').value='';
+  loadSales();
 });
 
-// ============================================================
-// SALE DETAILS
-// ============================================================
-async function populateSaleDetailDropdowns() {
-  const [{ data: sales }, { data: prods }] = await Promise.all([
-    db.from('sales').select('saleid, saledate').order('saleid'),
-    db.from('products').select('productid, productname').order('productname')
+/* ═══════════════════════════════════════════════════════
+   SALE DETAILS
+═══════════════════════════════════════════════════════ */
+async function loadSaleDetails(){
+  const [{data:sales},{data:prods}]=await Promise.all([
+    db.from('sales').select('saleid,saledate').order('saleid',{ascending:false}),
+    db.from('products').select('productid,productname,unitprice').order('productname'),
   ]);
-  document.getElementById('sd-sale').innerHTML =
-    '<option value="">-- Sale --</option>' +
-    (sales||[]).map(s=>`<option value="${s.saleid}">[${s.saleid}] ${s.saledate}</option>`).join('');
-  document.getElementById('sd-product').innerHTML =
-    '<option value="">-- Product --</option>' +
-    (prods||[]).map(p=>`<option value="${p.productid}">${p.productname}</option>`).join('');
+  const sdSale=$('sd-sale');
+  sdSale.innerHTML='<option value="">— Sale —</option>'+(sales||[]).map(s=>`<option value="${s.saleid}">[${s.saleid}] ${fdate(s.saledate)}</option>`).join('');
+  const sdProd=$('sd-product');
+  sdProd.innerHTML='<option value="">— Product —</option>'+(prods||[]).map(p=>`<option value="${p.productid}" data-price="${p.unitprice}">${p.productname}</option>`).join('');
+  sdProd.onchange=function(){
+    const opt=this.options[this.selectedIndex];
+    if(opt?.dataset?.price) $('sd-unitprice').value=opt.dataset.price;
+  };
+
+  const tb=$('tb-saledetails');
+  tb.innerHTML='<tr><td colspan="8" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('sale_details')
+    .select('saledetailid,saleid,quantity,unitprice,sales(saledate),products(productname)')
+    .order('saledetailid',{ascending:false});
+  if(error){tb.innerHTML=`<tr><td colspan="8" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="8" class="empty-msg">No sale details found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.saledetailid}</td>
+    <td>${r.saleid}</td>
+    <td>${fdate(r.sales?.saledate)}</td>
+    <td>${r.products?.productname||'—'}</td>
+    <td>${r.quantity}</td>
+    <td>${fmt(r.unitprice)}</td>
+    <td>${fmt(r.unitprice*r.quantity)}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('sale_details','saledetailid',${r.saledetailid},'Sale Detail',loadSaleDetails)">Remove</button>
+    </div></td>
+  </tr>`).join('');
 }
 
-async function fetchSaleDetails() {
-  await populateSaleDetailDropdowns();
-  const tbody = document.getElementById('saledetails-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db.from('sale_details')
-      .select('saledetailid, saleid, quantity, unitprice, sales(saledate), products(productname)')
-      .order('saledetailid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.saledetailid}</td>
-        <td>${r.saleid}</td>
-        <td>${r.sales?.saledate||''}</td>
-        <td>${r.products?.productname||''}</td>
-        <td>${r.quantity}</td>
-        <td>${Number(r.unitprice).toFixed(2)}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('sale_details','saledetailid',${r.saledetailid},'Sale Detail',fetchSaleDetails)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('btn-add-saledetail').addEventListener('click', async () => {
-  const saleId    = document.getElementById('sd-sale').value;
-  const productId = document.getElementById('sd-product').value;
-  const qty       = parseInt(document.getElementById('sd-quantity').value) || 1;
-  const price     = parseFloat(document.getElementById('sd-unitprice').value);
-  if (!saleId)      return showToast('Please select a Sale.', 'error');
-  if (!productId)   return showToast('Please select a Product.', 'error');
-  if (isNaN(price)) return showToast('Unit Price is required.', 'error');
-  try {
-    const { error } = await db.from('sale_details').insert([{
-      saleid: parseInt(saleId), productid: parseInt(productId), quantity: qty, unitprice: price
-    }]);
-    if (error) throw error;
-    showToast('Sale Detail added!', 'success');
-    ['sd-sale','sd-product','sd-quantity','sd-unitprice'].forEach(id=>document.getElementById(id).value='');
-    fetchSaleDetails();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+$('btn-add-saledetail').addEventListener('click', async ()=>{
+  const saleId=$('sd-sale').value, prodId=$('sd-product').value;
+  const qty=parseInt($('sd-quantity').value)||1, price=parseFloat($('sd-unitprice').value);
+  if(!saleId)    return toast('Select a sale.','err');
+  if(!prodId)    return toast('Select a product.','err');
+  if(isNaN(price)) return toast('Unit price is required.','err');
+  const {error}=await db.from('sale_details').insert([{
+    saleid:parseInt(saleId), productid:parseInt(prodId), quantity:qty, unitprice:price
+  }]);
+  if(error) return toast(error.message,'err');
+  toast('Sale detail added!','ok');
+  $('sd-quantity').value='1'; $('sd-unitprice').value='';
+  loadSaleDetails();
 });
 
-// ============================================================
-// PRODUCT PRICE HISTORY
-// ============================================================
-async function populatePriceHistoryDropdown() {
-  const { data: prods } = await db.from('products').select('productid, productname').order('productname');
-  document.getElementById('ph-product').innerHTML =
-    '<option value="">-- Product --</option>' +
-    (prods||[]).map(p=>`<option value="${p.productid}">${p.productname}</option>`).join('');
+/* ═══════════════════════════════════════════════════════
+   PRICE HISTORY
+═══════════════════════════════════════════════════════ */
+async function loadPriceHistory(){
+  const {data:prods}=await db.from('products').select('productid,productname,unitprice').order('productname');
+  const phProd=$('ph-product');
+  phProd.innerHTML='<option value="">— Product —</option>'+(prods||[]).map(p=>`<option value="${p.productid}" data-price="${p.unitprice}">${p.productname}</option>`).join('');
+  phProd.onchange=function(){
+    const opt=this.options[this.selectedIndex];
+    if(opt?.dataset?.price) $('ph-oldprice').value=opt.dataset.price;
+    else $('ph-oldprice').value='';
+  };
+
+  const tb=$('tb-pricehistory');
+  tb.innerHTML='<tr><td colspan="6" class="empty-msg">Loading…</td></tr>';
+  const {data,error}=await db.from('product_price_history')
+    .select('pricehistoryid,oldunitprice,newunitprice,changedate,products(productname)')
+    .order('pricehistoryid',{ascending:false});
+  if(error){tb.innerHTML=`<tr><td colspan="6" class="empty-msg">Error.</td></tr>`;return toast(error.message,'err');}
+  if(!data||!data.length){tb.innerHTML='<tr><td colspan="6" class="empty-msg">No price history found.</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${r.pricehistoryid}</td>
+    <td>${r.products?.productname||'—'}</td>
+    <td>${fmt(r.oldunitprice)}</td>
+    <td>${fmt(r.newunitprice)}</td>
+    <td>${fdate(r.changedate)}</td>
+    <td><div class="action-cell">
+      <button class="remove-btn" onclick="delRecord('product_price_history','pricehistoryid',${r.pricehistoryid},'Price Record',loadPriceHistory)">Remove</button>
+    </div></td>
+  </tr>`).join('');
 }
 
-async function fetchPriceHistory() {
-  await populatePriceHistoryDropdown();
-  const tbody = document.getElementById('pricehistory-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
-  try {
-    const { data, error } = await db.from('product_price_history')
-      .select('pricehistoryid, productid, oldunitprice, newunitprice, changedate, products(productname)')
-      .order('pricehistoryid');
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.pricehistoryid}</td>
-        <td>${r.products?.productname||''}</td>
-        <td>${Number(r.oldunitprice).toFixed(2)}</td>
-        <td>${Number(r.newunitprice).toFixed(2)}</td>
-        <td>${r.changedate}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('product_price_history','pricehistoryid',${r.pricehistoryid},'Price History',fetchPriceHistory)">Remove</button></td>
-      </tr>`).join('');
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
-    showToast('Error: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('btn-add-pricehistory').addEventListener('click', async () => {
-  const productId = document.getElementById('ph-product').value;
-  const oldPrice  = parseFloat(document.getElementById('ph-oldprice').value);
-  const newPrice  = parseFloat(document.getElementById('ph-newprice').value);
-  const date      = document.getElementById('ph-date').value;
-  if (!productId)     return showToast('Please select a Product.', 'error');
-  if (isNaN(oldPrice)) return showToast('Old Unit Price is required.', 'error');
-  if (isNaN(newPrice)) return showToast('New Unit Price is required.', 'error');
-  if (!date)          return showToast('Change Date is required.', 'error');
-  try {
-    const { error } = await db.from('product_price_history').insert([{
-      productid: parseInt(productId), oldunitprice: oldPrice, newunitprice: newPrice, changedate: date
-    }]);
-    if (error) throw error;
-    // Automatically update the product's current unit price
-    const { error: updateErr } = await db.from('products')
-      .update({ unitprice: newPrice })
-      .eq('productid', parseInt(productId));
-    if (updateErr) throw updateErr;
-    showToast('Price History added & product price updated!', 'success');
-    ['ph-product','ph-oldprice','ph-newprice','ph-date'].forEach(id=>document.getElementById(id).value='');
-    fetchPriceHistory();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+$('btn-add-pricehistory').addEventListener('click', async ()=>{
+  const prodId=$('ph-product').value, newP=parseFloat($('ph-newprice').value), dt=$('ph-date').value;
+  const oldP=parseFloat($('ph-oldprice').value)||0;
+  if(!prodId)    return toast('Select a product.','err');
+  if(isNaN(newP)) return toast('New price is required.','err');
+  if(!dt)         return toast('Change date is required.','err');
+  const {error}=await db.from('product_price_history').insert([{
+    productid:parseInt(prodId), oldunitprice:oldP, newunitprice:newP, changedate:dt
+  }]);
+  if(error) return toast(error.message,'err');
+  const {error:e2}=await db.from('products').update({unitprice:newP}).eq('productid',parseInt(prodId));
+  if(e2) return toast(e2.message,'err');
+  toast('Price change recorded & product updated!','ok');
+  $('ph-newprice').value=''; $('ph-date').value=''; $('ph-oldprice').value='';
+  loadPriceHistory();
 });
+
+/* ─── INIT ─── */
+loadDashboard();
