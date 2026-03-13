@@ -307,6 +307,28 @@ body {
   background: #f0f6ff;
 }
 
+.inline-textarea {
+  padding: 4px 7px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  font-size: 12px;
+  background: #fff;
+  color: #111;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 260px;
+  min-height: 56px;
+  max-height: 140px;
+  resize: vertical;
+  line-height: 1.45;
+  font-family: inherit;
+}
+
+.inline-textarea:focus {
+  border-color: #0a3d6b;
+  background: #f0f6ff;
+}
+
 /* ============================================================
    BADGES (status)
    ============================================================ */

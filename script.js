@@ -410,7 +410,7 @@ async function loadServiceHistory(){
       </select>
     </td>
     <td>${fdate(r.updatedate)}</td>
-    <td><input class="inline-text" type="text" id="shnotes-${r.servicehistoryid}" value="${r.notes||''}" placeholder="Notes"/></td>
+    <td><textarea class="inline-textarea" id="shnotes-${r.servicehistoryid}" placeholder="Notes">${r.notes||''}</textarea></td>
     <td><div class="action-cell">
       <button class="save-btn" onclick="saveServiceHistory(${r.servicehistoryid})">Save</button>
       <button class="remove-btn" onclick="delRecord('service_history','servicehistoryid',${r.servicehistoryid},'Record',loadServiceHistory)">Remove</button>
