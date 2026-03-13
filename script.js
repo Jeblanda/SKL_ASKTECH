@@ -154,14 +154,30 @@ async function fetchProducts() {
         <td>${r.productname}</td>
         <td>${r.producttype || ''}</td>
         <td>${Number(r.unitprice).toFixed(2)}</td>
-        <td>${r.quantityonhand}</td>
+        <td><input type="number" class="inline-edit" id="qty-${r.productid}" value="${r.quantityonhand}" min="0" /></td>
         <td>${r.reorderlevel}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('products','productid',${r.productid},'Product',fetchProducts)">Remove</button></td>
+        <td>
+          <button class="save-btn" onclick="updateQty(${r.productid})">Save Qty</button>
+          <button class="remove-btn" onclick="deleteRecord('products','productid',${r.productid},'Product',fetchProducts)">Remove</button>
+        </td>
       </tr>`).join('');
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading products: ' + err.message, 'error');
   }
+}
+
+// Update Qty On Hand inline
+async function updateQty(productId) {
+  const input = document.getElementById('qty-' + productId);
+  const qty = parseInt(input.value);
+  if (isNaN(qty) || qty < 0) return showToast('Enter a valid quantity.', 'error');
+  try {
+    const { error } = await db.from('products').update({ quantityonhand: qty }).eq('productid', productId);
+    if (error) throw error;
+    showToast('Quantity updated!', 'success');
+    fetchProducts();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 document.getElementById('btn-add-product').addEventListener('click', async () => {
@@ -465,15 +481,39 @@ async function fetchServiceHistory() {
         <td>${r.servicehistoryid}</td>
         <td>${r.serviceid}</td>
         <td>${r.services?.servicetype || ''}</td>
-        <td>${r.status}</td>
+        <td>
+          <select class="inline-edit" id="sh-status-${r.servicehistoryid}">
+            <option value="Pending"     ${r.status==='Pending'     ? 'selected' : ''}>Pending</option>
+            <option value="In Progress" ${r.status==='In Progress' ? 'selected' : ''}>In Progress</option>
+            <option value="Completed"   ${r.status==='Completed'   ? 'selected' : ''}>Completed</option>
+            <option value="Cancelled"   ${r.status==='Cancelled'   ? 'selected' : ''}>Cancelled</option>
+          </select>
+        </td>
         <td>${r.updatedate}</td>
-        <td>${r.notes || ''}</td>
-        <td><button class="remove-btn" onclick="deleteRecord('service_history','servicehistoryid',${r.servicehistoryid},'History Record',fetchServiceHistory)">Remove</button></td>
+        <td><input type="text" class="inline-edit" id="sh-notes-${r.servicehistoryid}" value="${r.notes || ''}" placeholder="Notes" /></td>
+        <td>
+          <button class="save-btn" onclick="updateServiceHistory(${r.servicehistoryid})">Save</button>
+          <button class="remove-btn" onclick="deleteRecord('service_history','servicehistoryid',${r.servicehistoryid},'History Record',fetchServiceHistory)">Remove</button>
+        </td>
       </tr>`).join('');
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Failed to load.</td></tr>';
     showToast('Error loading service history: ' + err.message, 'error');
   }
+}
+
+// Update Status and Notes inline for Service History
+async function updateServiceHistory(historyId) {
+  const status = document.getElementById('sh-status-' + historyId).value;
+  const notes  = document.getElementById('sh-notes-'  + historyId).value.trim();
+  try {
+    const { error } = await db.from('service_history')
+      .update({ status: status, notes: notes || null })
+      .eq('servicehistoryid', historyId);
+    if (error) throw error;
+    showToast('Service history updated!', 'success');
+    fetchServiceHistory();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 document.getElementById('btn-add-servicehistory').addEventListener('click', async () => {
@@ -696,7 +736,12 @@ document.getElementById('btn-add-pricehistory').addEventListener('click', async 
       productid: parseInt(productId), oldunitprice: oldPrice, newunitprice: newPrice, changedate: date
     }]);
     if (error) throw error;
-    showToast('Price History added!', 'success');
+    // Automatically update the product's current unit price
+    const { error: updateErr } = await db.from('products')
+      .update({ unitprice: newPrice })
+      .eq('productid', parseInt(productId));
+    if (updateErr) throw updateErr;
+    showToast('Price History added & product price updated!', 'success');
     ['ph-product','ph-oldprice','ph-newprice','ph-date'].forEach(id=>document.getElementById(id).value='');
     fetchPriceHistory();
   } catch (err) { showToast('Error: ' + err.message, 'error'); }

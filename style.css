@@ -233,6 +233,53 @@ body {
   padding: 20px !important;
 }
 
+
+/* ============================================================
+   INLINE EDITABLE FIELDS (inside table cells)
+   ============================================================ */
+.inline-edit {
+  padding: 3px 6px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  font-size: 12px;
+  background: #fff;
+  color: #111;
+  width: 100%;
+  max-width: 180px;
+}
+
+.inline-edit:focus {
+  outline: none;
+  border-color: #0a3d6b;
+  background: #f0f6ff;
+}
+
+select.inline-edit {
+  max-width: 130px;
+}
+
+/* ============================================================
+   SAVE BUTTON
+   ============================================================ */
+.save-btn {
+  padding: 3px 10px;
+  background-color: #f0f7ff;
+  color: #0a3d6b;
+  border: 1px solid #aac8ee;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-right: 4px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.save-btn:hover {
+  background-color: #0a3d6b;
+  color: #fff;
+  border-color: #0a3d6b;
+}
+
 /* ============================================================
    REMOVE BUTTON
    ============================================================ */
