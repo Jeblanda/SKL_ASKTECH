@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AskTech System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>AskTech Management System</h1>
+    </header>
+
+    <nav>
+        <button onclick="showSection('customers')">Customers</button>
+        <button onclick="showSection('products')">Products</button>
+        <button onclick="showSection('sales')">Sales</button>
+        <button onclick="showSection('services')">Services</button>
+    </nav>
+
+    <main>
+        <section id="customers">
+            <h2>Customers</h2>
+            <form id="customerForm">
+                <input type="text" id="custID" placeholder="Customer ID">
+                <input type="text" id="custName" placeholder="Customer Name">
+                <input type="text" id="custContact" placeholder="Contact Number">
+                <input type="text" id="custAddress" placeholder="Address">
+                <button type="submit">Add Customer</button>
+            </form>
+            <table id="customerTable">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Name</th><th>Contact</th><th>Address</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <section id="products" style="display:none;">
+            <h2>Products</h2>
+            <form id="productForm">
+                <input type="text" id="prodID" placeholder="Product ID">
+                <input type="text" id="prodName" placeholder="Product Name">
+                <input type="text" id="prodType" placeholder="Product Type">
+                <input type="number" id="prodPrice" placeholder="Unit Price">
+                <input type="number" id="prodQty" placeholder="Quantity">
+                <button type="submit">Add Product</button>
+            </form>
+            <table id="productTable">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <!-- Sales and Services sections can be added similarly -->
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
