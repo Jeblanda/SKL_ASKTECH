@@ -1,40 +1,49 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:0;
+  background-color: #f5f5f5;
 }
 
-header h1 {
-    text-align: center;
-}
-
-nav {
-    margin: 10px 0;
-    text-align: center;
+header {
+  background-color: #004080;
+  color: white;
+  padding: 1rem;
+  text-align: center;
 }
 
 nav button {
-    padding: 10px 20px;
-    margin: 5px;
-    cursor: pointer;
+  margin: 0 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+main {
+  padding: 1rem;
 }
 
-table, th, td {
-    border: 1px solid #000;
-}
-
-th, td {
-    padding: 8px;
-    text-align: center;
+section {
+  margin-top: 1rem;
 }
 
 form input {
-    margin: 5px;
-    padding: 5px;
+  margin: 0.25rem;
+  padding: 0.3rem;
+}
+
+form button {
+  padding: 0.3rem 0.7rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  background-color: white;
+}
+
+table th, table td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
 }

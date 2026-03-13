@@ -1,65 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AskTech System</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AskTech Management System</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.1.0/dist/supabase.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>AskTech Management System</h1>
-    </header>
-
+  <header>
+    <h1>AskTech Management System</h1>
     <nav>
-        <button onclick="showSection('customers')">Customers</button>
-        <button onclick="showSection('products')">Products</button>
-        <button onclick="showSection('sales')">Sales</button>
-        <button onclick="showSection('services')">Services</button>
+      <button onclick="showSection('customersSection')">Customers</button>
+      <button onclick="showSection('productsSection')">Products</button>
+      <button onclick="showSection('salesSection')">Sales</button>
+      <button onclick="showSection('servicesSection')">Services</button>
     </nav>
+  </header>
 
-    <main>
-        <section id="customers">
-            <h2>Customers</h2>
-            <form id="customerForm">
-                <input type="text" id="custID" placeholder="Customer ID">
-                <input type="text" id="custName" placeholder="Customer Name">
-                <input type="text" id="custContact" placeholder="Contact Number">
-                <input type="text" id="custAddress" placeholder="Address">
-                <button type="submit">Add Customer</button>
-            </form>
-            <table id="customerTable">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>Name</th><th>Contact</th><th>Address</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
+  <main>
+    <!-- Customers -->
+    <section id="customersSection">
+      <h2>Customers</h2>
+      <form id="customerForm">
+        <input type="text" id="custID" placeholder="Customer ID" required>
+        <input type="text" id="custName" placeholder="Customer Name" required>
+        <input type="text" id="custContact" placeholder="Contact Number">
+        <input type="text" id="custAddress" placeholder="Address">
+        <button type="submit">Add Customer</button>
+      </form>
+      <table id="customerTable">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Contact</th><th>Address</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-        <section id="products" style="display:none;">
-            <h2>Products</h2>
-            <form id="productForm">
-                <input type="text" id="prodID" placeholder="Product ID">
-                <input type="text" id="prodName" placeholder="Product Name">
-                <input type="text" id="prodType" placeholder="Product Type">
-                <input type="number" id="prodPrice" placeholder="Unit Price">
-                <input type="number" id="prodQty" placeholder="Quantity">
-                <button type="submit">Add Product</button>
-            </form>
-            <table id="productTable">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Qty</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
+    <!-- Products -->
+    <section id="productsSection" style="display:none;">
+      <h2>Products</h2>
+      <form id="productForm">
+        <input type="text" id="prodID" placeholder="Product ID" required>
+        <input type="text" id="prodName" placeholder="Product Name" required>
+        <input type="text" id="prodType" placeholder="Product Type">
+        <input type="number" id="prodPrice" placeholder="Unit Price" step="0.01">
+        <input type="number" id="prodQty" placeholder="Quantity On Hand">
+        <button type="submit">Add Product</button>
+      </form>
+      <table id="productTable">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Qty</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-        <!-- Sales and Services sections can be added similarly -->
-    </main>
+    <!-- Sales -->
+    <section id="salesSection" style="display:none;">
+      <h2>Sales</h2>
+      <form id="salesForm">
+        <input type="text" id="saleID" placeholder="Sale ID" required>
+        <input type="text" id="saleCustomerID" placeholder="Customer ID" required>
+        <input type="text" id="saleEmployeeID" placeholder="Employee ID">
+        <button type="submit">Add Sale</button>
+      </form>
+      <table id="salesTable">
+        <thead>
+          <tr><th>ID</th><th>Date</th><th>Customer</th><th>Employee</th><th>Total</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-    <script src="script.js"></script>
+    <!-- Services -->
+    <section id="servicesSection" style="display:none;">
+      <h2>Services</h2>
+      <form id="servicesForm">
+        <input type="text" id="serviceID" placeholder="Service ID" required>
+        <input type="text" id="serviceType" placeholder="Service Type">
+        <input type="text" id="serviceCustomerID" placeholder="Customer ID" required>
+        <input type="text" id="serviceProductID" placeholder="Product ID">
+        <input type="text" id="serviceEmployeeID" placeholder="Employee ID">
+        <button type="submit">Add Service</button>
+      </form>
+      <table id="servicesTable">
+        <thead>
+          <tr><th>ID</th><th>Type</th><th>Date</th><th>Customer</th><th>Product</th><th>Employee</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
