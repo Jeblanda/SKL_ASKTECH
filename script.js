@@ -44,7 +44,7 @@ function loadPage(pageId) {
     case 'sales':     fetchSales();     break;
     case 'services':  fetchServices();  break;
     case 'employees': fetchEmployees(); break;
-    case 'parts':     fetchParts();     break;
+    case 'servicehistory': fetchServiceHistory(); break;
   }
 }
 
@@ -434,6 +434,78 @@ document.getElementById('btn-add-part').addEventListener('click', async () => {
     document.getElementById('pt-name').value = '';
     document.getElementById('pt-desc').value = '';
     fetchParts();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+});
+
+// ============================================================
+// SERVICE HISTORY
+//   servicehistoryid → servicehistoryid
+//   serviceid        → serviceid
+//   status           → status
+//   updatedate       → updatedate
+//   notes            → notes
+// ============================================================
+async function populateServiceHistoryDropdown() {
+  const { data: svcs } = await db
+    .from('services')
+    .select('serviceid, servicetype')
+    .order('serviceid');
+  document.getElementById('sh-service').innerHTML =
+    '<option value="">-- Service --</option>' +
+    (svcs||[]).map(s => `<option value="${s.serviceid}">[${s.serviceid}] ${s.servicetype}</option>`).join('');
+}
+
+async function fetchServiceHistory() {
+  await populateServiceHistoryDropdown();
+  const tbody = document.getElementById('servicehistory-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Loading...</td></tr>';
+  try {
+    const { data, error } = await db
+      .from('service_history')
+      .select('servicehistoryid, serviceid, status, updatedate, notes, services(servicetype)')
+      .order('servicehistoryid');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No data found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.servicehistoryid}</td>
+        <td>${r.serviceid}</td>
+        <td>${r.services?.servicetype || ''}</td>
+        <td>${r.status}</td>
+        <td>${r.updatedate}</td>
+        <td>${r.notes || ''}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Failed to load.</td></tr>';
+    showToast('Error loading service history: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('btn-add-servicehistory').addEventListener('click', async () => {
+  const serviceId = document.getElementById('sh-service').value;
+  const status    = document.getElementById('sh-status').value;
+  const date      = document.getElementById('sh-date').value;
+  const notes     = document.getElementById('sh-notes').value.trim();
+  if (!serviceId) return showToast('Please select a Service.', 'error');
+  if (!status)    return showToast('Please select a Status.', 'error');
+  if (!date)      return showToast('Update Date is required.', 'error');
+  try {
+    const { error } = await db.from('service_history').insert([{
+      serviceid:  parseInt(serviceId),
+      status:     status,
+      updatedate: date,
+      notes:      notes || null
+    }]);
+    if (error) throw error;
+    showToast('Service history record added!', 'success');
+    document.getElementById('sh-service').value = '';
+    document.getElementById('sh-status').value  = '';
+    document.getElementById('sh-date').value    = '';
+    document.getElementById('sh-notes').value   = '';
+    fetchServiceHistory();
   } catch (err) { showToast('Error: ' + err.message, 'error'); }
 });
 

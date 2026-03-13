@@ -21,6 +21,7 @@
     <button class="nav-btn" data-page="services">Services</button>
     <button class="nav-btn" data-page="employees">Employees</button>
     <button class="nav-btn" data-page="parts">Parts</button>
+    <button class="nav-btn" data-page="servicehistory">Service History</button>
   </nav>
 </header>
 
@@ -249,6 +250,50 @@
         </thead>
         <tbody id="parts-body">
           <tr><td colspan="3" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       PAGE: SERVICE HISTORY
+       ===================================================== -->
+  <section class="page" id="page-servicehistory">
+    <h2 class="page-title">Service History</h2>
+
+    <div class="inline-form">
+      <select id="sh-service"><option value="">-- Service --</option></select>
+      <select id="sh-status">
+        <option value="">-- Status --</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+      <input type="date" id="sh-date" />
+      <input type="text" id="sh-notes" placeholder="Notes" />
+      <button class="add-btn" id="btn-add-servicehistory">Add Record</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-servicehistory" placeholder="Search service history..."
+             oninput="filterTable('servicehistory-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-servicehistory">
+        <thead>
+          <tr>
+            <th>History ID</th>
+            <th>Service ID</th>
+            <th>Service Type</th>
+            <th>Status</th>
+            <th>Update Date</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="servicehistory-body">
+          <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
         </tbody>
       </table>
     </div>
