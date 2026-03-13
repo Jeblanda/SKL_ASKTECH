@@ -1,99 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AskTech Management System</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.1.0/dist/supabase.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <header>
-    <h1>AskTech Management System</h1>
-    <nav>
-      <button onclick="showSection('customersSection')">Customers</button>
-      <button onclick="showSection('productsSection')">Products</button>
-      <button onclick="showSection('salesSection')">Sales</button>
-      <button onclick="showSection('servicesSection')">Services</button>
-    </nav>
-  </header>
 
-  <main>
-    <!-- Customers -->
-    <section id="customersSection">
-      <h2>Customers</h2>
-      <form id="customerForm">
-        <input type="text" id="custID" placeholder="Customer ID" required>
-        <input type="text" id="custName" placeholder="Customer Name" required>
-        <input type="text" id="custContact" placeholder="Contact Number">
-        <input type="text" id="custAddress" placeholder="Address">
-        <button type="submit">Add Customer</button>
-      </form>
-      <table id="customerTable">
+<!-- =========================================================
+     HEADER — navy blue bar with title + nav buttons
+     ========================================================= -->
+<header class="site-header">
+  <h1 class="site-title">AskTech Management System</h1>
+  <nav class="top-nav">
+    <button class="nav-btn active" data-page="customers">Customers</button>
+    <button class="nav-btn" data-page="products">Products</button>
+    <button class="nav-btn" data-page="sales">Sales</button>
+    <button class="nav-btn" data-page="services">Services</button>
+    <button class="nav-btn" data-page="employees">Employees</button>
+    <button class="nav-btn" data-page="parts">Parts</button>
+  </nav>
+</header>
+
+<!-- =========================================================
+     MAIN CONTENT AREA
+     ========================================================= -->
+<main class="content">
+
+  <!-- =====================================================
+       PAGE: CUSTOMERS
+       ===================================================== -->
+  <section class="page active" id="page-customers">
+    <h2 class="page-title">Customers</h2>
+
+    <!-- Inline form row matching screenshot layout -->
+    <div class="inline-form">
+      <input type="text" id="c-name"    placeholder="Customer Name" />
+      <input type="text" id="c-contact" placeholder="Contact Number" />
+      <input type="text" id="c-address" placeholder="Address" />
+      <button class="add-btn" id="btn-add-customer">Add Customer</button>
+    </div>
+
+    <!-- Search bar -->
+    <div class="search-row">
+      <input type="text" id="search-customers" placeholder="Search customers..."
+             oninput="filterTable('customers-body', this.value)" />
+    </div>
+
+    <!-- Data table -->
+    <div class="table-container">
+      <table class="data-table" id="tbl-customers">
         <thead>
-          <tr><th>ID</th><th>Name</th><th>Contact</th><th>Address</th></tr>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Address</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="customers-body">
+          <tr><td colspan="4" class="empty-msg">Loading...</td></tr>
+        </tbody>
       </table>
-    </section>
+    </div>
+  </section>
 
-    <!-- Products -->
-    <section id="productsSection" style="display:none;">
-      <h2>Products</h2>
-      <form id="productForm">
-        <input type="text" id="prodID" placeholder="Product ID" required>
-        <input type="text" id="prodName" placeholder="Product Name" required>
-        <input type="text" id="prodType" placeholder="Product Type">
-        <input type="number" id="prodPrice" placeholder="Unit Price" step="0.01">
-        <input type="number" id="prodQty" placeholder="Quantity On Hand">
-        <button type="submit">Add Product</button>
-      </form>
-      <table id="productTable">
+  <!-- =====================================================
+       PAGE: PRODUCTS
+       ===================================================== -->
+  <section class="page" id="page-products">
+    <h2 class="page-title">Products</h2>
+
+    <div class="inline-form">
+      <input type="text"   id="p-name"    placeholder="Product Name" />
+      <input type="text"   id="p-type"    placeholder="Product Type" />
+      <input type="number" id="p-price"   placeholder="Unit Price"    min="0" step="0.01" />
+      <input type="number" id="p-qty"     placeholder="Qty On Hand"   min="0" />
+      <input type="number" id="p-reorder" placeholder="Reorder Level" min="0" />
+      <button class="add-btn" id="btn-add-product">Add Product</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-products" placeholder="Search products..."
+             oninput="filterTable('products-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-products">
         <thead>
-          <tr><th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Qty</th></tr>
+          <tr>
+            <th>ID</th>
+            <th>Product Name</th>
+            <th>Type</th>
+            <th>Unit Price</th>
+            <th>Qty On Hand</th>
+            <th>Reorder Level</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="products-body">
+          <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
+        </tbody>
       </table>
-    </section>
+    </div>
+  </section>
 
-    <!-- Sales -->
-    <section id="salesSection" style="display:none;">
-      <h2>Sales</h2>
-      <form id="salesForm">
-        <input type="text" id="saleID" placeholder="Sale ID" required>
-        <input type="text" id="saleCustomerID" placeholder="Customer ID" required>
-        <input type="text" id="saleEmployeeID" placeholder="Employee ID">
-        <button type="submit">Add Sale</button>
-      </form>
-      <table id="salesTable">
+  <!-- =====================================================
+       PAGE: SALES
+       ===================================================== -->
+  <section class="page" id="page-sales">
+    <h2 class="page-title">Sales</h2>
+
+    <div class="inline-form">
+      <input type="date"   id="sl-date" />
+      <input type="number" id="sl-total"    placeholder="Total Amount" min="0" step="0.01" />
+      <select id="sl-customer"><option value="">-- Customer --</option></select>
+      <select id="sl-employee"><option value="">-- Employee --</option></select>
+      <button class="add-btn" id="btn-add-sale">Add Sale</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-sales" placeholder="Search sales..."
+             oninput="filterTable('sales-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-sales">
         <thead>
-          <tr><th>ID</th><th>Date</th><th>Customer</th><th>Employee</th><th>Total</th></tr>
+          <tr>
+            <th>Sale ID</th>
+            <th>Sale Date</th>
+            <th>Total Amount</th>
+            <th>Customer</th>
+            <th>Employee</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="sales-body">
+          <tr><td colspan="5" class="empty-msg">Loading...</td></tr>
+        </tbody>
       </table>
-    </section>
+    </div>
+  </section>
 
-    <!-- Services -->
-    <section id="servicesSection" style="display:none;">
-      <h2>Services</h2>
-      <form id="servicesForm">
-        <input type="text" id="serviceID" placeholder="Service ID" required>
-        <input type="text" id="serviceType" placeholder="Service Type">
-        <input type="text" id="serviceCustomerID" placeholder="Customer ID" required>
-        <input type="text" id="serviceProductID" placeholder="Product ID">
-        <input type="text" id="serviceEmployeeID" placeholder="Employee ID">
-        <button type="submit">Add Service</button>
-      </form>
-      <table id="servicesTable">
+  <!-- =====================================================
+       PAGE: SERVICES
+       ===================================================== -->
+  <section class="page" id="page-services">
+    <h2 class="page-title">Services</h2>
+
+    <div class="inline-form">
+      <input type="text" id="sv-type" placeholder="Service Type" />
+      <input type="date" id="sv-date" />
+      <select id="sv-customer"><option value="">-- Customer --</option></select>
+      <select id="sv-product"> <option value="">-- Product --</option></select>
+      <select id="sv-employee"><option value="">-- Employee --</option></select>
+      <button class="add-btn" id="btn-add-service">Add Service</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-services" placeholder="Search services..."
+             oninput="filterTable('services-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-services">
         <thead>
-          <tr><th>ID</th><th>Type</th><th>Date</th><th>Customer</th><th>Product</th><th>Employee</th></tr>
+          <tr>
+            <th>Service ID</th>
+            <th>Service Type</th>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Employee</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="services-body">
+          <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
+        </tbody>
       </table>
-    </section>
-  </main>
+    </div>
+  </section>
 
-  <script src="script.js"></script>
+  <!-- =====================================================
+       PAGE: EMPLOYEES
+       ===================================================== -->
+  <section class="page" id="page-employees">
+    <h2 class="page-title">Employees</h2>
+
+    <div class="inline-form">
+      <input type="text"  id="e-name"    placeholder="Employee Name" />
+      <input type="text"  id="e-role"    placeholder="Role" />
+      <input type="text"  id="e-contact" placeholder="Contact No" />
+      <input type="email" id="e-email"   placeholder="Email Address" />
+      <input type="text"  id="e-address" placeholder="Address" />
+      <button class="add-btn" id="btn-add-employee">Add Employee</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-employees" placeholder="Search employees..."
+             oninput="filterTable('employees-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-employees">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Employee Name</th>
+            <th>Role</th>
+            <th>Contact No</th>
+            <th>Email</th>
+            <th>Address</th>
+          </tr>
+        </thead>
+        <tbody id="employees-body">
+          <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       PAGE: PARTS
+       ===================================================== -->
+  <section class="page" id="page-parts">
+    <h2 class="page-title">Parts</h2>
+
+    <div class="inline-form">
+      <input type="text" id="pt-name" placeholder="Parts Name" />
+      <input type="text" id="pt-desc" placeholder="Description" />
+      <button class="add-btn" id="btn-add-part">Add Part</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-parts" placeholder="Search parts..."
+             oninput="filterTable('parts-body', this.value)" />
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" id="tbl-parts">
+        <thead>
+          <tr>
+            <th>Parts ID</th>
+            <th>Parts Name</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="parts-body">
+          <tr><td colspan="3" class="empty-msg">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<script src="script.js"></script>
 </body>
 </html>
